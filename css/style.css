@@ -75,3 +75,16 @@ textarea {
 .qualification-item button:hover {
     color: #bd2130;
 }
+
+.ad-section-responsive {
+    margin: 24px 0;
+    text-align: center;
+    width: 100%;
+}
+
+.adsbygoogle {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 200px !important;
+}
