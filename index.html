@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/index.css">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6284022198338659"
+        crossorigin="anonymous"></script>
 </head>
 
 <body class="admin-dashboard">
@@ -25,7 +27,7 @@
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
-            
+
             <div class="sidebar-menu">
                 <ul class="nav flex-column" id="sidebarMenu">
                     <!-- Dashboard - visible to all roles -->
@@ -36,7 +38,7 @@
                             <span class="badge bg-primary rounded-pill ms-auto">New</span>
                         </a>
                     </li>
-                
+
                     <!-- Admin & Employer Only Content -->
                     <div id="adminEmployerContent" style="display: none;">
                         <li class="nav-item">
@@ -45,10 +47,11 @@
                                 <span>Upload News</span>
                             </a>
                         </li>
-                
+
                         <!-- Jobs Section - Employer sees only Private Jobs -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#jobs-collapse">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse"
+                                data-bs-target="#jobs-collapse">
                                 <i class="bi bi-briefcase"></i>
                                 <span>Jobs</span>
                                 <i class="bi bi-chevron-down dropdown-arrow"></i>
@@ -70,14 +73,14 @@
                                 </ul>
                             </div>
                         </li>
-                
+
                         <li class="nav-item">
                             <a class="nav-link" href="profile-upload.html">
                                 <i class="bi bi-person-circle"></i>
                                 <span>Profile Upload</span>
                             </a>
                         </li>
-                
+
                         <!-- Admin Only Content -->
                         <div id="adminOnlyContent" style="display: none;">
                             <li class="nav-item">
@@ -94,171 +97,178 @@
                                 </a>
                             </li>
                         </div>
-                    </ul>
-                </div>
-                
-                <div class="sidebar-footer">
-                    <div class="user-profile-container">
-                      <div class="user-profile">
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-container">
+                    <div class="user-profile">
                         <img src="/images/default.webp" alt="User" class="profile-img">
                         <div class="profile-info">
-                          <h6 class="profile-name">Username</h6>
-                          <span class="profile-role">Super Administrator Role</span>
+                            <h6 class="profile-name">Username</h6>
+                            <span class="profile-role">Super Administrator Role</span>
                         </div>
-                      </div>
                     </div>
-                  </div>
-            </aside>
+                </div>
+            </div>
+        </aside>
 
-            <!-- Main Content -->
-            <main class="main-content">
-                <!-- Top Navigation -->
-                <nav class="top-nav">
-                    <div class="d-flex align-items-center">
-                        <button class="sidebar-toggle d-lg-none me-3">
-                            <i class="bi bi-list"></i>
-                        </button>
-                        <h4 class="page-title mb-0">Dashboard Overview</h4>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggle d-lg-none me-3">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h4 class="page-title mb-0">Dashboard Overview</h4>
+                </div>
+
+                <div class="top-nav-actions">
+
+                    <div class="notifications" id="notificationsDropdown">
+                        <!-- This will be dynamically updated by JavaScript -->
                     </div>
-                    
-                    <div class="top-nav-actions">
-                        
-                        <div class="notifications" id="notificationsDropdown">
-                            <!-- This will be dynamically updated by JavaScript -->
-                        </div>
-                        <div class="user-menu" id="userMenuDropdown">
-                            <!-- This will be dynamically updated by JavaScript -->
-                        </div>
+                    <div class="user-menu" id="userMenuDropdown">
+                        <!-- This will be dynamically updated by JavaScript -->
                     </div>
-                </nav>
-                
-                <!-- Dashboard Content -->
-                <div class="content-wrapper">
-                    <!-- Stats Cards -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-primary">
-                                <div class="card-icon">
-                                    <i class="bi bi-briefcase"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3>0</h3>
-                                    <p>Total Jobs</p>
-                                </div>
-                                <div class="card-growth positive">
-                                    <i class="bi bi-arrow-up"></i> 0%
-                                </div>
+                </div>
+            </nav>
+
+            <!-- Dashboard Content -->
+            <div class="content-wrapper">
+                <!-- Stats Cards -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-primary">
+                            <div class="card-icon">
+                                <i class="bi bi-briefcase"></i>
                             </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-success">
-                                <div class="card-icon">
-                                    <i class="bi bi-people"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3>0</h3>
-                                    <p>Active Users</p>
-                                </div>
-                                <div class="card-growth positive">
-                                    <i class="bi bi-arrow-up"></i> 0%
-                                </div>
+                            <div class="card-info">
+                                <h3>0</h3>
+                                <p>Total Jobs</p>
                             </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-info">
-                                <div class="card-icon">
-                                    <i class="bi bi-graph-up"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3>0</h3>
-                                    <p>Total News Views</p>
-                                </div>
-                                <div class="card-growth positive" id="newsViewsGrowth">
-                                    <i class="bi bi-arrow-up"></i> 0%
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-warning">
-                                <div class="card-icon">
-                                    <i class="bi bi-newspaper"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3>0</h3>
-                                    <p>News Articles</p>
-                                </div>
-                                <div class="card-growth negative">
-                                    <i class="bi bi-arrow-down"></i> 0%
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-danger">
-                                <div class="card-icon">
-                                    <i class="bi bi-eye"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3 id="totalJobViews">0</h3>
-                                    <p>Total Job Views</p>
-                                </div>
-                                <div class="card-growth positive">
-                                    <i class="bi bi-arrow-up"></i> 0%
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-secondary">
-                                <div class="card-icon">
-                                    <i class="bi bi-calendar-day"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3 id="todayJobsCount">0</h3>
-                                    <p>Today's Jobs</p>
-                                </div>
-                                <div class="card-growth positive">
-                                    <i class="bi bi-arrow-up"></i> 0%
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-dark">
-                                <div class="card-icon">
-                                    <i class="bi bi-calendar-minus"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3 id="yesterdayJobsCount">0</h3>
-                                    <p>Yesterday's Jobs</p>
-                                </div>
-                                <div class="card-growth negative">
-                                    <i class="bi bi-arrow-down"></i> 0%
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div class="col-md-6 col-lg-3">
-                            <div class="stats-card bg-purple">
-                                <div class="card-icon">
-                                    <i class="bi bi-calendar-week"></i>
-                                </div>
-                                <div class="card-info">
-                                    <h3 id="weeklyJobsCount">0</h3>
-                                    <p>Weekly Jobs</p>
-                                </div>
-                                <div class="card-growth positive">
-                                    <i class="bi bi-arrow-up"></i> 0%
-                                </div>
+                            <div class="card-growth positive">
+                                <i class="bi bi-arrow-up"></i> 0%
                             </div>
                         </div>
                     </div>
-                    
-                        
-                
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-success">
+                            <div class="card-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>0</h3>
+                                <p>Active Users</p>
+                            </div>
+                            <div class="card-growth positive">
+                                <i class="bi bi-arrow-up"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-info">
+                            <div class="card-icon">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>0</h3>
+                                <p>Total News Views</p>
+                            </div>
+                            <div class="card-growth positive" id="newsViewsGrowth">
+                                <i class="bi bi-arrow-up"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-warning">
+                            <div class="card-icon">
+                                <i class="bi bi-newspaper"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>0</h3>
+                                <p>News Articles</p>
+                            </div>
+                            <div class="card-growth negative">
+                                <i class="bi bi-arrow-down"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-danger">
+                            <div class="card-icon">
+                                <i class="bi bi-eye"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3 id="totalJobViews">0</h3>
+                                <p>Total Job Views</p>
+                            </div>
+                            <div class="card-growth positive">
+                                <i class="bi bi-arrow-up"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-secondary">
+                            <div class="card-icon">
+                                <i class="bi bi-calendar-day"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3 id="todayJobsCount">0</h3>
+                                <p>Today's Jobs</p>
+                            </div>
+                            <div class="card-growth positive">
+                                <i class="bi bi-arrow-up"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-dark">
+                            <div class="card-icon">
+                                <i class="bi bi-calendar-minus"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3 id="yesterdayJobsCount">0</h3>
+                                <p>Yesterday's Jobs</p>
+                            </div>
+                            <div class="card-growth negative">
+                                <i class="bi bi-arrow-down"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="stats-card bg-purple">
+                            <div class="card-icon">
+                                <i class="bi bi-calendar-week"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3 id="weeklyJobsCount">0</h3>
+                                <p>Weekly Jobs</p>
+                            </div>
+                            <div class="card-growth positive">
+                                <i class="bi bi-arrow-up"></i> 0%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ad-section-responsive">
+                    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6284022198338659"
+                        data-ad-slot="4451530295" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                    <script>
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
+
+
+
                 <!-- Main Content Row -->
                 <div class="row g-4">
                     <!-- Welcome Card -->
@@ -270,8 +280,9 @@
                             <div class="card-body">
                                 <div class="welcome-content">
                                     <h3>Empower Your Job Portal</h3>
-                                    <p class="lead">Transform your job posting experience with our comprehensive admin platform designed for modern recruiters and job portals.</p>
-                                    
+                                    <p class="lead">Transform your job posting experience with our comprehensive admin
+                                        platform designed for modern recruiters and job portals.</p>
+
                                     <ul class="features-list">
                                         <li>
                                             <i class="bi bi-check-circle-fill text-success"></i>
@@ -290,7 +301,7 @@
                                             <span>Real-time analytics and reporting</span>
                                         </li>
                                     </ul>
-                                    
+
                                     <div class="welcome-actions mt-4">
                                         <button class="btn btn-primary me-3">
                                             <i class="bi bi-lightning-charge-fill me-2"></i>Quick Start Guide
@@ -303,7 +314,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Jobs Overview Card -->
                     <div class="col-lg-6">
                         <div class="card jobs-overview-card">
@@ -342,7 +353,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Quick Actions -->
                     <div class="col-12">
                         <div class="card quick-actions-card">
@@ -389,7 +400,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Footer -->
             <footer class="footer">
                 <div class="container-fluid">
@@ -416,6 +427,6 @@
     <script type="module" src="js/firebase-config.js"></script>
     <!-- Add this before the closing body tag -->
     <script type="module" src="js/index.js"></script>
-   
+
 </body>
 </html>
