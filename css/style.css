@@ -1,0 +1,77 @@
+/* Add your custom styles here */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Add these styles to your existing CSS */
+.form-label {
+    font-weight: 500;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    font-weight: 500;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.preview-image {
+    max-width: 200px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.btn-primary {
+    padding: 0.5rem 2rem;
+}
+
+.benefits-list {
+    margin-top: 0.5rem;
+}
+
+.requirements-list {
+    margin-bottom: 1rem;
+}
+
+.social-links input {
+    margin-bottom: 0.5rem;
+}
+
+.btn-primary {
+    margin-top: 1rem;
+}
+
+.qualification-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.qualification-item span {
+    flex-grow: 1;
+    margin-right: 1rem;
+}
+
+.qualification-item button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: #dc3545;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.qualification-item button:hover {
+    color: #bd2130;
+}

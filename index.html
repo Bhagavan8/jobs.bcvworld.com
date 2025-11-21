@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body class="admin-dashboard">
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-wrapper">
+                    <i class="bi bi-briefcase-fill logo-icon"></i>
+                    <h1 class="logo-text">Jobs<span> Admin</span></h1>
+                </div>
+                <button class="sidebar-toggle d-lg-none">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-menu">
+                <ul class="nav flex-column" id="sidebarMenu">
+                    <!-- Dashboard - visible to all roles -->
+                    <li class="nav-item">
+                        <a class="nav-link active" href="dashboard.html">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Dashboard</span>
+                            <span class="badge bg-primary rounded-pill ms-auto">New</span>
+                        </a>
+                    </li>
+                
+                    <!-- Admin & Employer Only Content -->
+                    <div id="adminEmployerContent" style="display: none;">
+                        <li class="nav-item">
+                            <a class="nav-link" href="upload-news.html">
+                                <i class="bi bi-newspaper"></i>
+                                <span>Upload News</span>
+                            </a>
+                        </li>
+                
+                        <!-- Jobs Section - Employer sees only Private Jobs -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#jobs-collapse">
+                                <i class="bi bi-briefcase"></i>
+                                <span>Jobs</span>
+                                <i class="bi bi-chevron-down dropdown-arrow"></i>
+                            </a>
+                            <div class="collapse show" id="jobs-collapse">
+                                <ul class="nav flex-column sub-menu" id="jobsSubmenu">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="jobs-upload.html">Private Jobs</a>
+                                    </li>
+                                    <!-- Admin Only Content -->
+                                    <div id="adminOnlyJobs" style="display: none;">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="govt-jobs-upload.html">Government Jobs</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="bank-jobs-upload.html">Banking Jobs</a>
+                                        </li>
+                                    </div>
+                                </ul>
+                            </div>
+                        </li>
+                
+                        <li class="nav-item">
+                            <a class="nav-link" href="profile-upload.html">
+                                <i class="bi bi-person-circle"></i>
+                                <span>Profile Upload</span>
+                            </a>
+                        </li>
+                
+                        <!-- Admin Only Content -->
+                        <div id="adminOnlyContent" style="display: none;">
+                            <li class="nav-item">
+                                <a class="nav-link" href="affiliate-marketing.html">
+                                    <i class="bi bi-graph-up"></i>
+                                    <span>Affiliate Marketing</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="comments.html">
+                                    <i class="bi bi-chat-dots"></i>
+                                    <span>Comments</span>
+                                    <span class="badge bg-danger rounded-pill ms-auto">0</span>
+                                </a>
+                            </li>
+                        </div>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-footer">
+                    <div class="user-profile-container">
+                      <div class="user-profile">
+                        <img src="/images/default.webp" alt="User" class="profile-img">
+                        <div class="profile-info">
+                          <h6 class="profile-name">Username</h6>
+                          <span class="profile-role">Super Administrator Role</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Top Navigation -->
+                <nav class="top-nav">
+                    <div class="d-flex align-items-center">
+                        <button class="sidebar-toggle d-lg-none me-3">
+                            <i class="bi bi-list"></i>
+                        </button>
+                        <h4 class="page-title mb-0">Dashboard Overview</h4>
+                    </div>
+                    
+                    <div class="top-nav-actions">
+                        
+                        <div class="notifications" id="notificationsDropdown">
+                            <!-- This will be dynamically updated by JavaScript -->
+                        </div>
+                        <div class="user-menu" id="userMenuDropdown">
+                            <!-- This will be dynamically updated by JavaScript -->
+                        </div>
+                    </div>
+                </nav>
+                
+                <!-- Dashboard Content -->
+                <div class="content-wrapper">
+                    <!-- Stats Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-primary">
+                                <div class="card-icon">
+                                    <i class="bi bi-briefcase"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>0</h3>
+                                    <p>Total Jobs</p>
+                                </div>
+                                <div class="card-growth positive">
+                                    <i class="bi bi-arrow-up"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-success">
+                                <div class="card-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>0</h3>
+                                    <p>Active Users</p>
+                                </div>
+                                <div class="card-growth positive">
+                                    <i class="bi bi-arrow-up"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-info">
+                                <div class="card-icon">
+                                    <i class="bi bi-graph-up"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>0</h3>
+                                    <p>Total News Views</p>
+                                </div>
+                                <div class="card-growth positive" id="newsViewsGrowth">
+                                    <i class="bi bi-arrow-up"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-warning">
+                                <div class="card-icon">
+                                    <i class="bi bi-newspaper"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>0</h3>
+                                    <p>News Articles</p>
+                                </div>
+                                <div class="card-growth negative">
+                                    <i class="bi bi-arrow-down"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-danger">
+                                <div class="card-icon">
+                                    <i class="bi bi-eye"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3 id="totalJobViews">0</h3>
+                                    <p>Total Job Views</p>
+                                </div>
+                                <div class="card-growth positive">
+                                    <i class="bi bi-arrow-up"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-secondary">
+                                <div class="card-icon">
+                                    <i class="bi bi-calendar-day"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3 id="todayJobsCount">0</h3>
+                                    <p>Today's Jobs</p>
+                                </div>
+                                <div class="card-growth positive">
+                                    <i class="bi bi-arrow-up"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-dark">
+                                <div class="card-icon">
+                                    <i class="bi bi-calendar-minus"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3 id="yesterdayJobsCount">0</h3>
+                                    <p>Yesterday's Jobs</p>
+                                </div>
+                                <div class="card-growth negative">
+                                    <i class="bi bi-arrow-down"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stats-card bg-purple">
+                                <div class="card-icon">
+                                    <i class="bi bi-calendar-week"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3 id="weeklyJobsCount">0</h3>
+                                    <p>Weekly Jobs</p>
+                                </div>
+                                <div class="card-growth positive">
+                                    <i class="bi bi-arrow-up"></i> 0%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                        
+                
+                <!-- Main Content Row -->
+                <div class="row g-4">
+                    <!-- Welcome Card -->
+                    <div class="col-lg-6">
+                        <div class="card welcome-card">
+                            <div class="card-header">
+                                <h5><i class="bi bi-rocket-takeoff me-2"></i>Welcome to Jobs Admin</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="welcome-content">
+                                    <h3>Empower Your Job Portal</h3>
+                                    <p class="lead">Transform your job posting experience with our comprehensive admin platform designed for modern recruiters and job portals.</p>
+                                    
+                                    <ul class="features-list">
+                                        <li>
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <span>Seamless job posting across multiple categories</span>
+                                        </li>
+                                        <li>
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <span>Integrated news and content management</span>
+                                        </li>
+                                        <li>
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <span>Advanced user profile management</span>
+                                        </li>
+                                        <li>
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                            <span>Real-time analytics and reporting</span>
+                                        </li>
+                                    </ul>
+                                    
+                                    <div class="welcome-actions mt-4">
+                                        <button class="btn btn-primary me-3">
+                                            <i class="bi bi-lightning-charge-fill me-2"></i>Quick Start Guide
+                                        </button>
+                                        <button class="btn btn-outline-secondary">
+                                            <i class="bi bi-question-circle me-2"></i>Help Center
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Jobs Overview Card -->
+                    <div class="col-lg-6">
+                        <div class="card jobs-overview-card">
+                            <div class="card-header">
+                                <h5><i class="bi bi-bar-chart me-2"></i>Jobs Overview</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                        This Month
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#">Today</a></li>
+                                        <li><a class="dropdown-item" href="#">This Week</a></li>
+                                        <li><a class="dropdown-item" href="#">This Month</a></li>
+                                        <li><a class="dropdown-item" href="#">This Year</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="jobsChart"></canvas>
+                                </div>
+                                <div class="jobs-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Private Jobs</span>
+                                        <span class="stat-value">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Govt Jobs</span>
+                                        <span class="stat-value">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Bank Jobs</span>
+                                        <span class="stat-value">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="col-12">
+                        <div class="card quick-actions-card">
+                            <div class="card-header">
+                                <h5><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3 col-6">
+                                        <a href="jobs-upload.html" class="quick-action">
+                                            <div class="action-icon bg-primary-light">
+                                                <i class="bi bi-briefcase text-primary"></i>
+                                            </div>
+                                            <span>Post New Job</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <a href="upload-news.html" class="quick-action">
+                                            <div class="action-icon bg-success-light">
+                                                <i class="bi bi-newspaper text-success"></i>
+                                            </div>
+                                            <span>Add News</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <a href="profile-upload.html" class="quick-action">
+                                            <div class="action-icon bg-warning-light">
+                                                <i class="bi bi-person-plus text-warning"></i>
+                                            </div>
+                                            <span>Add Profile</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <a href="affiliate-marketing.html" class="quick-action">
+                                            <div class="action-icon bg-info-light">
+                                                <i class="bi bi-graph-up-arrow text-info"></i>
+                                            </div>
+                                            <span>View Reports</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <p class="mb-0">© 2025 Jobs Admin. All rights reserved.</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <ul class="list-inline mb-0">
+                                <li class="list-inline-item"><a href="#">Help</a></li>
+                                <li class="list-inline-item"><a href="#">Privacy</a></li>
+                                <li class="list-inline-item"><a href="#">Terms</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="js/firebase-config.js"></script>
+    <!-- Add this before the closing body tag -->
+    <script type="module" src="js/index.js"></script>
+   
+</body>
+</html>

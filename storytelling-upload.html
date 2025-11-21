@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Story - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">Create Story</h2>
+        <form id="storyForm">
+            <!-- Story Basic Info -->
+            <div class="card mb-4">
+                <div class="card-header">Story Information</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="storyTitle" class="form-label">Story Title</label>
+                        <input type="text" class="form-control" id="storyTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="storyCategory" class="form-label">Category</label>
+                        <select class="form-select" id="storyCategory" required>
+                            <option value="">Select Category</option>
+                            <option value="fiction">Fiction</option>
+                            <option value="non-fiction">Non-Fiction</option>
+                            <option value="mystery">Mystery</option>
+                            <option value="adventure">Adventure</option>
+                            <option value="children">Children's Stories</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="shortDescription" class="form-label">Short Description</label>
+                        <textarea class="form-control" id="shortDescription" rows="2" required></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Story Chapters -->
+            <div id="chaptersContainer">
+                <!-- Chapter template will be added here -->
+            </div>
+
+            <button type="button" class="btn btn-secondary mb-4" id="addChapter">Add New Chapter</button>
+
+            <!-- Publishing Options -->
+            <div class="card mb-4">
+                <div class="card-header">Publishing Options</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" required>
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="visibility" class="form-label">Visibility</label>
+                            <select class="form-select" id="visibility" required>
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Story</button>
+        </form>
+    </div>
+
+    <!-- Chapter Template (Hidden) -->
+    <template id="chapterTemplate">
+        <div class="card mb-4 chapter">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Chapter <span class="chapter-number"></span></span>
+                <button type="button" class="btn btn-danger btn-sm remove-chapter">Remove</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Chapter Title</label>
+                    <input type="text" class="form-control chapter-title" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Chapter Content</label>
+                    <textarea class="form-control chapter-content" rows="6" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Image URL</label>
+                    <input type="url" class="form-control chapter-image" placeholder="https://...">
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/storytelling-upload.js"></script>
+</body>
+</html>

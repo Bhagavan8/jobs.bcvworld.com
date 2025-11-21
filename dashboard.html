@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - News Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css"/>
+
+  <style>
+     :root {
+      --primary: #4361ee;
+      --primary-light: rgba(67, 97, 238, 0.1);
+      --primary-dark: #3a0ca3;
+      --secondary: #4895ef;
+      --accent: #4cc9f0;
+      --success: #43aa8b;
+      --danger: #f72585;
+      --warning: #f8961e;
+      --info: #4cc9f0;
+      --dark: #212529;
+      --light: #f8f9fa;
+      --gray: #6c757d;
+      --gray-light: #e9ecef;
+      --sidebar-width: 280px;
+      --sidebar-collapsed-width: 80px;
+      --top-nav-height: 70px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --border-radius: 12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: #f5f7fa;
+      color: var(--dark);
+      display: flex;
+      min-height: 100vh;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      box-shadow: var(--shadow-md);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      font-size: 1.75rem;
+      color: white;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0;
+      color: white;
+      transition: var(--transition);
+    }
+
+    .logo-text span {
+      font-weight: 300;
+    }
+
+    .sidebar-toggle {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: none;
+    }
+
+    .sidebar-menu {
+      flex: 1;
+      padding: 1rem 0;
+      overflow-y: auto;
+    }
+
+    .nav {
+      flex-direction: column;
+      padding: 0 1rem;
+    }
+
+    .nav-item {
+      margin-bottom: 0.25rem;
+    }
+
+    .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      padding: 0.75rem 1rem;
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      transition: var(--transition);
+      font-weight: 500;
+      position: relative;
+    }
+
+    .nav-link i {
+      font-size: 1.1rem;
+      margin-right: 0.75rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .nav-link span {
+      flex: 1;
+      transition: var(--transition);
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: white;
+      text-decoration: none;
+    }
+
+    .nav-link.active {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .nav-link.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: white;
+      border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    }
+
+    .badge {
+      font-weight: 500;
+      font-size: 0.65rem;
+      padding: 0.35em 0.5em;
+    }
+
+    .dropdown-arrow {
+      margin-left: auto;
+      font-size: 0.75rem;
+      transition: var(--transition);
+    }
+
+    .dropdown-toggle[aria-expanded="true"] .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .sub-menu {
+      padding-left: 2.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .sub-menu .nav-link {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      background: rgba(0,0,0,0.1);
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .user-profile-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .profile-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      flex-shrink: 0;
+    }
+
+    .profile-info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .profile-name {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-role {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 0.5rem;
+      border-radius: 6px;
+      transition: var(--transition);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    /* Main Content Styles */
+    .main-content {
+      flex: 1;
+      margin-left: var(--sidebar-width);
+      transition: var(--transition);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: var(--top-nav-height);
+      background: white;
+      border-bottom: 1px solid var(--gray-light);
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-search {
+      flex: 1;
+      max-width: 500px;
+      position: relative;
+    }
+
+    .topbar-search input {
+      padding-left: 2.5rem;
+      border-radius: 50px;
+      border: 1px solid var(--gray-light);
+    }
+
+    .topbar-search i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .topbar-action-btn {
+      background: none;
+      border: none;
+      color: var(--gray);
+      font-size: 1.25rem;
+      position: relative;
+      padding: 0.5rem;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .topbar-action-btn:hover {
+      background: var(--gray-light);
+      color: var(--dark);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-size: 0.6rem;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary-light);
+    }
+
+    .content-wrapper {
+      flex: 1;
+      padding: 1.5rem;
+      margin-top: var(--top-nav-height);
+    }
+
+    .welcome-card {
+      border: none;
+      border-radius: var(--border-radius);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    }
+
+    .welcome-card .card-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-card h2 {
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .welcome-card p {
+      opacity: 0.9;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+      background: white;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      border: none;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-card i {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+
+    .stat-card .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-card .stat-label {
+      font-size: 0.875rem;
+      color: var(--gray);
+    }
+
+    .card {
+      border: none;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.5rem;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      background: white;
+      border-bottom: 1px solid var(--gray-light);
+      padding: 1rem 1.5rem;
+      border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+    }
+
+    .card-title {
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .nav-tabs {
+      border-bottom: 1px solid var(--gray-light);
+    }
+
+    .nav-tabs .nav-link {
+      color: var(--gray);
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-weight: 500;
+      border-radius: 0;
+    }
+
+    .nav-tabs .nav-link.active {
+      color: var(--primary);
+      background: transparent;
+      border-bottom: 2px solid var(--primary);
+    }
+
+    .nav-tabs .nav-link:hover {
+      color: var(--primary);
+      border-color: transparent;
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
+
+    .table thead th {
+      border-bottom: 1px solid var(--gray-light);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      color: var(--gray);
+    }
+
+    .table tbody tr {
+      transition: var(--transition);
+    }
+
+    .table tbody tr:hover {
+      background-color: rgba(var(--primary), 0.03);
+    }
+
+    .btn {
+      border-radius: 50px;
+      padding: 0.5rem 1.25rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      border-color: var(--primary-dark);
+    }
+
+    .btn-outline-primary {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .modal-content {
+      border: none;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+        position: fixed;
+        z-index: 1100;
+      }
+      
+      .sidebar.show {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .sidebar-toggle {
+        display: block;
+      }
+      
+      .topbar-search {
+        max-width: 300px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .content-wrapper {
+        padding: 1rem;
+      }
+      
+      .topbar-search {
+        display: none;
+      }
+      
+      .stat-card {
+        margin-bottom: 1rem;
+      }
+      
+      .nav-tabs .nav-link {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .sidebar-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+      
+      .user-profile {
+        width: 100%;
+      }
+      
+      .logout-btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .table-responsive {
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray-light);
+      }
+    }
+
+    /* Animations */
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Utility Classes */
+    .text-primary {
+      color: var(--primary) !important;
+    }
+    
+    .bg-primary {
+      background-color: var(--primary) !important;
+    }
+    
+    .border-primary {
+      border-color: var(--primary) !important;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-wrapper">
+        <i class="bi bi-briefcase-fill logo-icon"></i>
+        <h1 class="logo-text">Jobs<span> Admin</span></h1>
+      </div>
+    </div>
+    
+    <div class="sidebar-menu">
+      <ul class="nav flex-column" id="sidebarMenu">
+        <!-- Dashboard - visible to all roles -->
+        <li class="nav-item">
+          <a class="nav-link" href="/">
+            <i class="bi bi-house"></i>
+            <span>Home</span>
+          </a>
+          <a class="nav-link" href="dashboard.html">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+      
+        <!-- Admin & Employer Only Content -->
+        <div id="adminEmployerContent" style="display: none;">
+          <li class="nav-item">
+            <a class="nav-link" href="upload-news.html">
+              <i class="bi bi-newspaper"></i>
+              <span>Upload News</span>
+            </a>
+          </li>
+      
+          <!-- Jobs Section - Employer sees only Private Jobs -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#jobs-collapse">
+              <i class="bi bi-briefcase"></i>
+              <span>Jobs</span>
+              <i class="bi bi-chevron-down dropdown-arrow"></i>
+            </a>
+            <div class="collapse show" id="jobs-collapse">
+              <ul class="nav flex-column sub-menu" id="jobsSubmenu">
+                <li class="nav-item">
+                  <a class="nav-link" href="jobs-upload.html">Private Jobs</a>
+                </li>
+                <!-- Admin Only Content -->
+                <div id="adminOnlyJobs" style="display: none;">
+                  <li class="nav-item">
+                    <a class="nav-link" href="govt-jobs-upload.html">Government Jobs</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="bank-jobs-upload.html">Banking Jobs</a>
+                  </li>
+                </div>
+              </ul>
+            </div>
+          </li>
+      
+          <li class="nav-item">
+            <a class="nav-link" href="profile-upload.html">
+              <i class="bi bi-person-circle"></i>
+              <span>Profile Upload</span>
+            </a>
+          </li>
+      
+          <!-- Admin Only Content -->
+          <div id="adminOnlyContent" style="display: none;">
+            <li class="nav-item">
+              <a class="nav-link" href="affiliate-marketing.html">
+                <i class="bi bi-graph-up"></i>
+                <span>Affiliate Marketing</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="comments.html">
+                <i class="bi bi-chat-dots"></i>
+                <span>Comments</span>
+                <span class="badge bg-danger rounded-pill ms-auto">0</span>
+              </a>
+            </li>
+          </div>
+        </ul>
+      </div>
+    </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="d-flex justify-content-between w-100 align-items-center">
+        <div>
+          <button class="btn d-lg-none" type="button">
+            <i class="bi bi-list"></i>
+          </button>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="dropdown">
+            <button class="btn position-relative" type="button">
+              <i class="bi bi-bell"></i>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                0
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-12">
+            <div class="card welcome-card">
+              <div class="card-body">
+                <h2>Welcome, <span id="userName">User</span>!</h2>
+                <p class="mb-0">Welcome to your News Admin Dashboard</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Content Management Tabs -->
+        <div class="card mt-4">
+          <div class="card-body">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs nav-justified d-flex flex-row border-bottom mb-3" id="contentTabs" role="tablist">
+              <li class="nav-item flex-fill" role="presentation">
+                <button class="nav-link active w-100 d-inline-flex align-items-center gap-1" id="news-tab" data-bs-toggle="tab" data-bs-target="#newsTab" type="button" role="tab" aria-controls="newsTab" aria-selected="true">
+                  <i class="bi bi-newspaper"></i>News
+                </button>
+              </li>
+              <li class="nav-item flex-fill" role="presentation">
+                <button class="nav-link w-100 d-inline-flex align-items-center gap-1" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobsTab" type="button" role="tab" aria-controls="jobsTab" aria-selected="false">
+                  <i class="bi bi-briefcase"></i>Jobs
+                </button>
+              </li>
+              <li class="nav-item flex-fill" role="presentation">
+                <button class="nav-link w-100 d-inline-flex align-items-center gap-1" id="stories-tab" data-bs-toggle="tab" data-bs-target="#storiesTab" type="button" role="tab" aria-controls="storiesTab" aria-selected="false">
+                  <i class="bi bi-book"></i>Stories
+                </button>
+              </li>
+              <li class="nav-item flex-fill" role="presentation">
+                <button class="nav-link w-100 d-inline-flex align-items-center gap-1" id="affiliate-tab" data-bs-toggle="tab" data-bs-target="#affiliateTab" type="button" role="tab" aria-controls="affiliateTab" aria-selected="false">
+                  <i class="bi bi-graph-up"></i>Affiliate Posts
+                </button>
+              </li>
+            </ul>
+        
+            <div class="tab-content mt-3">
+              <!-- News Tab -->
+              <div class="tab-pane fade show active" id="newsTab">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Views</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="newsTableBody"></tbody>
+                  </table>
+                </div>
+                <div id="newsPagination" class="mt-3"></div>
+              </div>
+              
+        
+              <!-- Jobs Tab -->
+              <div class="tab-pane fade" id="jobsTab">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Company</th>
+                        <th>Posted Date</th>
+                        <th>Expires</th>
+                        <th>Views</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="jobsTableBody"></tbody>
+                  </table>
+                </div>
+                <div id="jobsPagination" class="mt-3"></div>
+              </div>
+              
+        
+              <!-- Stories Tab -->
+              <div class="tab-pane fade" id="storiesTab">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Chapters</th>
+                        <th>Status</th>
+                        <th>Views</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="storiesTableBody"></tbody>
+                  </table>
+                </div>
+                <div id="storiesPagination" class="mt-3"></div>
+              </div>
+             
+        
+              <!-- Affiliate Tab -->
+              <div class="tab-pane fade" id="affiliateTab">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Clicks</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="affiliateTableBody"></tbody>
+                  </table>
+                </div>
+                <div id="affiliatePagination" class="mt-3"></div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Edit Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" id="editModalBody">
+                <!-- Dynamic form will be inserted here -->
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveChanges">Save changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <!-- Firebase SDK -->
+      <!-- Firebase SDKs - make sure these are loaded in this order -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
+
+    <!-- Add Bootstrap JS Bundle before your custom scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Your local config and dashboard logic -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+  </div>
+</body>
+</html>

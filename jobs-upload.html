@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Jobs - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+            max-width: 400px;
+        }
+
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .upload-dropzone {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-dropzone:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+
+        .upload-dropzone.active {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+
+        #logoPreview {
+            max-width: 200px;
+            max-height: 200px;
+            display: none;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .section-collapse .bi-chevron-down {
+                transition: transform 0.3s;
+            }
+
+            .section-collapse[aria-expanded="true"] .bi-chevron-down {
+                transform: rotate(180deg);
+            }
+
+            .card-body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="alert-container"></div>
+
+    <div class="container mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Upload Job Posting</h2>
+            <a href="/" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Bulk Upload Section -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Bulk Upload Jobs
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="downloadTemplate">
+                    <i class="bi bi-download me-1"></i> Download Template
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="upload-dropzone" id="uploadDropzone">
+                    <div class="mb-3">
+                        <i class="bi bi-cloud-arrow-up fs-1 text-primary"></i>
+                    </div>
+                    <h5>Drag & Drop Excel File Here</h5>
+                    <p class="text-muted">or</p>
+                    <input type="file" class="d-none" id="excelFile" accept=".xlsx, .xls">
+                    <button type="button" class="btn btn-primary" id="selectFileBtn">
+                        <i class="bi bi-folder2-open me-1"></i> Select File
+                    </button>
+                    <p class="small text-muted mt-2">Supports .xlsx and .xls files (Max 5MB)</p>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div id="fileName" class="text-truncate" style="max-width: 70%;"></div>
+                    <button type="button" class="btn btn-success" id="uploadExcelBtn" disabled>
+                        <i class="bi bi-upload me-1"></i> Upload
+                    </button>
+                </div>
+
+                <div class="progress mb-3 d-none" id="uploadProgress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                        style="width: 0%"></div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Important:</strong> Download our template to ensure proper formatting with all required
+                    fields.
+                </div>
+            </div>
+        </div>
+
+        <!-- Single Job Form -->
+        <form id="uploadJobForm" class="needs-validation" novalidate>
+            <!-- Step 1: Basic Job Information -->
+            <div class="form-step active" id="step1">
+                <div class="card">
+                    <div class="card-header section-collapse" data-bs-toggle="collapse" data-bs-target="#basicInfo">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Basic Job Information</h5>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div id="basicInfo" class="collapse show">
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="jobTitle" class="form-label">Job Title
+                                        <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Enter a clear and specific job title, e.g., Frontend Developer Intern"></i>
+                                    </label>
+                                    <input type="text" class="form-control" id="jobTitle" required>
+                                    <div class="invalid-feedback">
+                                        Please enter a job title
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="jobCategory" class="form-label">Job Category</label>
+                                    <select class="form-select" id="jobCategory" required>
+                                        <option value="">Select Category</option>
+                                        <option value="IT">IT & Software</option>
+                                        <option value="marketing">Marketing</option>
+                                        <option value="finance">Finance</option>
+                                        <option value="sales">Sales</option>
+                                        <option value="hr">Human Resources</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select a job category
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="jobType" class="form-label">Job Type</label>
+                                    <select class="form-select" id="jobType" required>
+                                        <option value="private">Private</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="employmentType" class="form-label">Employment Type</label>
+                                    <select class="form-select" id="employmentType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="fulltime">Full Time</option>
+                                        <option value="parttime">Part Time</option>
+                                        <option value="internship">Internship</option>
+                                        <option value="freelance">Freelance</option>
+                                        <option value="remote">Remote</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select an employment type
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="experience" class="form-label">Experience Required
+                                        <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Specify required years of experience, e.g., 2 Years, 3-5 Years"></i>
+                                    </label>
+                                    <input type="text" class="form-control" id="experience" required>
+                                    <div class="invalid-feedback">
+                                        Please enter experience requirements
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="location" class="form-label">Location (Optional)
+                                        <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Specify job location, e.g., New York, NY, Remote, or Multiple Locations"></i>
+                                    </label>
+                                    <input type="text" class="form-control" id="location">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="educationLevel" class="form-label">Education Level
+                                        <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Specify required education qualifications, e.g., Bachelor's in Computer Science, MBA"></i>
+                                    </label>
+                                    <input type="text" class="form-control" id="educationLevel" required>
+                                    <div class="invalid-feedback">
+                                        Please enter education requirements
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="noticePeriod" class="form-label">Notice Period (Optional)
+                                        <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Select the required notice period for joining"></i>
+                                    </label>
+                                    <select class="form-select" id="noticePeriod">
+                                        <option value="">Select Notice Period</option>
+                                        <option value="immediate">Immediate Joining</option>
+                                        <option value="15">15 Days</option>
+                                        <option value="30">30 Days</option>
+                                        <option value="45">45 Days</option>
+                                        <option value="60">60 Days</option>
+                                        <option value="90">90 Days</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="salary" class="form-label">Salary Range (Optional)
+                                        <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Specify the salary range for this position, e.g., $50,000 - $70,000 per year"></i>
+                                    </label>
+                                    <input type="text" class="form-control" id="salary">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="lastDate" class="form-label">Last Date to Apply</label>
+                                    <input type="date" class="form-control" id="lastDate">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="skills" class="form-label">Required Skills
+                                    <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="List required technical skills separated by commas, e.g., JavaScript, React, Node.js"></i>
+                                </label>
+                                <input type="text" class="form-control" id="skills" required>
+                                <div class="invalid-feedback">
+                                    Please enter required skills
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Job Description
+                                    <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="Include detailed information about:&#10;• Key responsibilities&#10;• Requirements&#10;• Benefits&#10;• Work environment"></i>
+                                </label>
+                                <textarea class="form-control" id="description" rows="6" required></textarea>
+                                <div class="invalid-feedback">
+                                    Please enter a job description
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="qualifications" class="form-label">Desired Qualifications
+                                    <i class="bi bi-question-circle form-tooltip" data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="List key qualifications required for the role, e.g., education, skills, certifications"></i>
+                                </label>
+                                <textarea class="form-control" id="qualifications" rows="4" required></textarea>
+                                <div class="invalid-feedback">
+                                    Please enter desired qualifications
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <div></div>
+                    <button type="button" class="btn btn-primary next-step" data-next="step2">
+                        Next <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Company Information -->
+            <div class="form-step" id="step2">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-building"></i> Company Information
+                        <div class="float-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="searchCompanyBtn">
+                                <i class="bi bi-search"></i> Search Existing Company
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <input type="hidden" id="companyId">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="useExistingCompany">
+                                <label class="form-check-label" for="useExistingCompany">
+                                    Use Existing Company
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="companyFormFields">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="companyName" class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" id="companyName">
+                                    <div class="invalid-feedback">
+                                        Please enter company name
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="companyWebsite" class="form-label">Company Website</label>
+                                    <input type="url" class="form-control" id="companyWebsite"
+                                        placeholder="https://...">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="aboutCompany" class="form-label">About Company</label>
+                                <textarea class="form-control" id="aboutCompany" rows="3"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="companyLogo" class="form-label">Company Logo</label>
+                                <input type="file" class="form-control" id="companyLogo" accept="image/*">
+                                <small class="text-muted">Upload company logo image (optional if using existing
+                                    company)</small>
+                                <img id="logoPreview" class="mt-2" style="max-width: 200px; display: none;"
+                                    alt="Logo preview">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary prev-step" data-prev="step1">
+                        <i class="bi bi-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary next-step" data-next="step3">
+                        Next <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Application & Social Links -->
+            <div class="form-step" id="step3">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-envelope"></i> Application Method
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="applicationMethod" class="form-label">How to Apply</label>
+                                <select class="form-select" id="applicationMethod" required>
+                                    <option value="">Select Method</option>
+                                    <option value="link">External Link</option>
+                                    <option value="email">Email Application</option>
+                                    <option value="form">Application Form</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select an application method
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="applicationLink" class="form-label">Application Link/Email</label>
+                                <input type="text" class="form-control" id="applicationLink" required
+                                    placeholder="URL or Email address">
+                                <div class="invalid-feedback">
+                                    Please enter a valid application link or email
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary prev-step" data-prev="step2">
+                        <i class="bi bi-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary next-step" data-next="step4">
+                        Next <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Admin Settings -->
+            <div class="form-step" id="step4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-gear"></i> Admin Settings
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Listing Status</label>
+                                <select class="form-select" id="status" required>
+                                    <option value="public">Public</option>
+                                    <option value="private">Private</option>
+                                    <option value="pending">Pending Review</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="isActive" class="form-label">Job Status</label>
+                                <select class="form-select" id="isActive" required>
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="referralCode" class="form-label">Referral Code (Optional)</label>
+                                <input type="text" class="form-control" id="referralCode"
+                                    placeholder="Enter referral code">
+                                <small class="text-muted">Leave empty if no referral code</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary prev-step" data-prev="step3">
+                        <i class="bi bi-arrow-left"></i> Previous
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Submit Job
+                    </button>
+                </div>
+            </div>
+        </form>
+        <!-- Bootstrap Bundle with Popper (includes Bootstrap JS) -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+        <script src="js/jobs-upload.js" type="module"></script>
+</body>
+</html>

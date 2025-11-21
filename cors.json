@@ -1,0 +1,19 @@
+[
+    {
+      "origin": ["http://127.0.0.1:5501", "http://localhost:5501"],
+      "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+      "maxAgeSeconds": 3600,
+      "responseHeader": [
+        "Content-Type",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Methods",
+        "Access-Control-Allow-Headers",
+        "Access-Control-Max-Age",
+        "Authorization",
+        "Content-Length",
+        "User-Agent",
+        "x-goog-resumable",
+        "x-goog-meta-*"
+      ]
+    }
+  ]
