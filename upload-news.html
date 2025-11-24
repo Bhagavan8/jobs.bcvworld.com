@@ -19,6 +19,13 @@
             </div>
 
             <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="newsUrl" class="form-label">URL</label>
+                    <input type="text" class="form-control" id="newsUrl" placeholder="Enter URL (e.g., https://example.com)">
+                </div>
+            </div>
+
+            <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="newsCategory" class="form-label">Category</label>
                     <select class="form-select" id="newsCategory" required>
@@ -56,9 +63,8 @@
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="newsImage" class="form-label">Image Name</label>
-                    <input type="text" class="form-control" id="newsImage" required 
-                           placeholder="Enter image name (e.g., news1.jpg)">
+                    <label for="newsImageFile" class="form-label">Upload Image</label>
+                    <input type="file" class="form-control" id="newsImageFile" accept="image/*">
                 </div>
                 <div class="col-md-6">
                     <label for="newsStatus" class="form-label">Approval Status</label>

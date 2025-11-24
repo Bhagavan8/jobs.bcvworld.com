@@ -1,4 +1,4 @@
-import { auth, db } from './firebase-config.js';
+import { auth, db, storage, ref, uploadBytes, getDownloadURL } from './firebase-config.js';
 import { 
     collection, 
     addDoc, 
@@ -6,11 +6,12 @@ import {
     getDoc,
     updateDoc,
     serverTimestamp 
-} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Get the news ID from URL if it exists
 const urlParams = new URLSearchParams(window.location.search);
 const newsId = urlParams.get('id');
+let existingImageUrl = '';
 
 
 // Load existing news data if editing
@@ -24,7 +25,9 @@ async function loadNewsData() {
                 document.getElementById('newsCategory').value = data.category || '';
                 document.getElementById('newsSection').value = data.section || '';
                 document.getElementById('newsContent').value = data.content || '';
-                document.getElementById('newsImage').value = data.imageName || '';
+                const urlEl = document.getElementById('newsUrl');
+                if (urlEl) { urlEl.value = data.url || ''; }
+                existingImageUrl = data.imageUrl || '';
                 document.getElementById('newsStatus').value = data.status || 'pending';
 
                 // Update form button text
@@ -50,18 +53,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const category = document.getElementById('newsCategory').value;
             const section = document.getElementById('newsSection').value;
             const content = document.getElementById('newsContent').value;
-            const imageName = document.getElementById('newsImage').value;
+            const imageFileInput = document.getElementById('newsImageFile');
+            const imageFile = imageFileInput?.files?.[0] || null;
             const status = document.getElementById('newsStatus').value;
+            const url = document.getElementById('newsUrl')?.value || '';
 
             try {
+                let imageUrl = existingImageUrl;
+                let imageName = '';
+
+                if (imageFile) {
+                    imageName = imageFile.name;
+                    const fileName = `news/${Date.now()}_${Math.random().toString(36).slice(2)}_${imageFile.name}`;
+                    const storageRef = ref(storage, fileName);
+                    await uploadBytes(storageRef, imageFile, { contentType: imageFile.type });
+                    imageUrl = await getDownloadURL(storageRef);
+                }
+
                 const newsData = {
                     title,
                     category,
                     section,
                     content,
-                    imageName,
-                    imagePath: `/assets/images/news/${imageName}`,
-                    approvalStatus: status,
+                    url,
+                    imageName: imageName || undefined,
+                    imageUrl: imageUrl || undefined,
+                    status,
                     authorId: auth.currentUser?.uid || 'anonymous',
                     authorName: auth.currentUser?.displayName || 'Anonymous',
                     updatedAt: serverTimestamp(),
