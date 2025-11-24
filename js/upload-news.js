@@ -13,6 +13,27 @@ const urlParams = new URLSearchParams(window.location.search);
 const newsId = urlParams.get('id');
 let existingImageUrl = '';
 
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '1100';
+        document.body.appendChild(container);
+    }
+    const el = document.createElement('div');
+    el.className = `toast align-items-center text-bg-${type} border-0`;
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'assertive');
+    el.setAttribute('aria-atomic', 'true');
+    el.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+    container.appendChild(el);
+    const toast = new bootstrap.Toast(el, { delay: 3000 });
+    toast.show();
+    el.addEventListener('hidden.bs.toast', () => el.remove());
+}
+
 
 // Load existing news data if editing
 async function loadNewsData() {
@@ -24,7 +45,15 @@ async function loadNewsData() {
                 document.getElementById('newsTitle').value = data.title || '';
                 document.getElementById('newsCategory').value = data.category || '';
                 document.getElementById('newsSection').value = data.section || '';
-                document.getElementById('newsContent').value = data.content || '';
+                const container = document.getElementById('paragraphsContainer');
+                const template = document.getElementById('paragraphTemplate');
+                container.innerHTML = '';
+                const paragraphs = Array.isArray(data.paragraphs) && data.paragraphs.length ? data.paragraphs : (data.content ? [data.content] : ['']);
+                paragraphs.forEach(text => {
+                    const el = template.content.cloneNode(true);
+                    el.querySelector('.paragraph-text').value = text || '';
+                    container.appendChild(el);
+                });
                 const urlEl = document.getElementById('newsUrl');
                 if (urlEl) { urlEl.value = data.url || ''; }
                 existingImageUrl = data.imageUrl || '';
@@ -35,7 +64,7 @@ async function loadNewsData() {
             }
         } catch (error) {
             console.error('Error loading news:', error);
-            alert('Error loading news data');
+            showToast('Error loading news data', 'danger');
         }
     }
 }
@@ -45,6 +74,32 @@ document.addEventListener('DOMContentLoaded', () => {
     loadNewsData();
     
     const form = document.querySelector('#uploadNewsForm');
+    const paragraphsContainer = document.getElementById('paragraphsContainer');
+    const paragraphTemplate = document.getElementById('paragraphTemplate');
+    const addParagraphBtn = document.getElementById('addParagraphBtn');
+    const splitBtn = document.getElementById('splitParagraphsBtn');
+    const bulkText = document.getElementById('bulkParagraphText');
+
+    const addParagraph = (text = '') => {
+        const el = paragraphTemplate.content.cloneNode(true);
+        el.querySelector('.paragraph-text').value = text;
+        const node = el.firstElementChild;
+        node.querySelector('.remove-paragraph').addEventListener('click', () => node.remove());
+        paragraphsContainer.appendChild(el);
+    };
+
+    if (paragraphsContainer && paragraphsContainer.children.length === 0) {
+        addParagraph('');
+    }
+
+    addParagraphBtn?.addEventListener('click', () => addParagraph(''));
+    splitBtn?.addEventListener('click', () => {
+        const raw = (bulkText?.value || '').trim();
+        if (!raw) return;
+        const parts = raw.split('.').map(s => s.trim()).filter(Boolean);
+        parts.forEach(p => addParagraph(p));
+        bulkText.value = '';
+    });
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -52,7 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.getElementById('newsTitle').value;
             const category = document.getElementById('newsCategory').value;
             const section = document.getElementById('newsSection').value;
-            const content = document.getElementById('newsContent').value;
+            const paragraphs = Array.from(document.querySelectorAll('.paragraph-text')).map(el => el.value.trim()).filter(Boolean);
+            const content = paragraphs.join('\n\n');
             const imageFileInput = document.getElementById('newsImageFile');
             const imageFile = imageFileInput?.files?.[0] || null;
             const status = document.getElementById('newsStatus').value;
@@ -75,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     category,
                     section,
                     content,
+                    paragraphs,
                     url,
                     imageName: imageName || undefined,
                     imageUrl: imageUrl || undefined,
@@ -87,17 +144,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (newsId) {
                     await updateDoc(doc(db, 'news', newsId), newsData);
-                    alert('News updated successfully!');
+                    showToast('News updated successfully!', 'success');
                 } else {
                     newsData.createdAt = serverTimestamp();
                     await addDoc(collection(db, 'news'), newsData);
-                    alert('News uploaded successfully!');
+                    showToast('News uploaded successfully!', 'success');
                 }
-
-                window.location.href = 'dashboard.html';
+                setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
             } catch (error) {
                 console.error('Error:', error);
-                alert('Failed to process news. Please try again.');
+                showToast('Failed to process news. Please try again.', 'danger');
             }
         });
     } else {

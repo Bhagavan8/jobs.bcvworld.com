@@ -57,9 +57,24 @@
             </div>
 
             <div class="mb-3">
-                <label for="newsContent" class="form-label">Content</label>
-                <textarea class="form-control" id="newsContent" rows="6" required></textarea>
+                <label class="form-label">Content</label>
+                <div id="paragraphsContainer"></div>
+                <button type="button" class="btn btn-secondary mt-2" id="addParagraphBtn">Add Paragraph</button>
+                <div class="mt-3">
+                    <label for="bulkParagraphText" class="form-label">Bulk Text (optional)</label>
+                    <textarea class="form-control" id="bulkParagraphText" rows="3" placeholder="Paste text to split by '.'"></textarea>
+                    <button type="button" class="btn btn-outline-secondary mt-2" id="splitParagraphsBtn">Split into paragraphs</button>
+                </div>
             </div>
+
+            <template id="paragraphTemplate">
+                <div class="paragraph-item mb-2">
+                    <div class="input-group">
+                        <textarea class="form-control paragraph-text" rows="3" placeholder="Paragraph text"></textarea>
+                        <button class="btn btn-outline-danger remove-paragraph" type="button">Remove</button>
+                    </div>
+                </div>
+            </template>
 
             <div class="row mb-3">
                 <div class="col-md-6">
