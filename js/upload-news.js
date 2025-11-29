@@ -47,11 +47,23 @@ async function loadNewsData() {
                 document.getElementById('newsSection').value = data.section || '';
                 const container = document.getElementById('paragraphsContainer');
                 const template = document.getElementById('paragraphTemplate');
+                const subTemplate = document.getElementById('subpointTemplate');
                 container.innerHTML = '';
                 const paragraphs = Array.isArray(data.paragraphs) && data.paragraphs.length ? data.paragraphs : (data.content ? [data.content] : ['']);
-                paragraphs.forEach(text => {
+                paragraphs.forEach(p => {
                     const el = template.content.cloneNode(true);
-                    el.querySelector('.paragraph-text').value = text || '';
+                    const paragraphText = typeof p === 'string' ? p : (p.text || '');
+                    el.querySelector('.paragraph-text').value = paragraphText;
+                    const node = el.firstElementChild;
+                    const subContainer = node.querySelector('.subpoints-container');
+                    const points = (typeof p === 'object' && Array.isArray(p.points)) ? p.points : [];
+                    points.forEach(pt => {
+                        const sp = subTemplate.content.cloneNode(true);
+                        sp.querySelector('.subpoint-text').value = pt.text || '';
+                        const spNode = sp.firstElementChild;
+                        if (pt.bold) spNode.classList.add('bold');
+                        subContainer.appendChild(sp);
+                    });
                     container.appendChild(el);
                 });
                 const urlEl = document.getElementById('newsUrl');
@@ -80,11 +92,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const splitBtn = document.getElementById('splitParagraphsBtn');
     const bulkText = document.getElementById('bulkParagraphText');
 
+    const addSubpoint = (subContainer, text = '') => {
+        const sp = document.getElementById('subpointTemplate').content.cloneNode(true);
+        const spNode = sp.firstElementChild;
+        spNode.querySelector('.subpoint-text').value = text;
+        spNode.querySelector('.remove-subpoint').addEventListener('click', () => spNode.remove());
+        spNode.querySelector('.toggle-bold').addEventListener('click', () => {
+            spNode.classList.toggle('bold');
+        });
+        subContainer.appendChild(sp);
+    };
+
     const addParagraph = (text = '') => {
         const el = paragraphTemplate.content.cloneNode(true);
-        el.querySelector('.paragraph-text').value = text;
         const node = el.firstElementChild;
+        node.querySelector('.paragraph-text').value = text;
         node.querySelector('.remove-paragraph').addEventListener('click', () => node.remove());
+        const subContainer = node.querySelector('.subpoints-container');
+        node.querySelector('.add-subpoint').addEventListener('click', () => addSubpoint(subContainer, ''));
         paragraphsContainer.appendChild(el);
     };
 
@@ -107,8 +132,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.getElementById('newsTitle').value;
             const category = document.getElementById('newsCategory').value;
             const section = document.getElementById('newsSection').value;
-            const paragraphs = Array.from(document.querySelectorAll('.paragraph-text')).map(el => el.value.trim()).filter(Boolean);
-            const content = paragraphs.join('\n\n');
+            const paragraphNodes = Array.from(document.querySelectorAll('.paragraph-item'));
+            const paragraphs = paragraphNodes.map(node => {
+                const text = node.querySelector('.paragraph-text')?.value.trim() || '';
+                const points = Array.from(node.querySelectorAll('.subpoint-item')).map(sp => ({
+                    text: sp.querySelector('.subpoint-text')?.value.trim() || '',
+                    bold: sp.classList.contains('bold')
+                })).filter(pt => pt.text);
+                return { text, points };
+            }).filter(p => p.text || (p.points && p.points.length));
+            const content = paragraphs.map(p => {
+                let t = p.text;
+                if (p.points?.length) {
+                    t += '\n' + p.points.map(pt => `• ${pt.bold ? '**' + pt.text + '**' : pt.text}`).join('\n');
+                }
+                return t;
+            }).join('\n\n');
             const imageFileInput = document.getElementById('newsImageFile');
             const imageFile = imageFileInput?.files?.[0] || null;
             const status = document.getElementById('newsStatus').value;

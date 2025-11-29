@@ -1,13 +1,37 @@
 import { 
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    onAuthStateChanged 
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { auth, app, db } from './firebase-config.js';
 import { setupRoleBasedMenu } from './index.js';
 
 let isRedirecting = false; // Added declaration
+
+async function upsertUserDoc(user) {
+    const userRef = doc(db, 'users', user.uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+        await setDoc(userRef, {
+            uid: user.uid,
+            name: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
+            email: user.email || '',
+            createdAt: new Date().toISOString(),
+            role: 'user',
+            isActive: true
+        });
+    }
+    const docData = (await getDoc(userRef)).data();
+    localStorage.setItem('userRole', docData.role);
+    localStorage.setItem('userData', JSON.stringify({
+        name: docData.name,
+        email: docData.email,
+        role: docData.role
+    }));
+}
 
 // Login functionality
 const loginForm = document.getElementById('loginForm');
@@ -119,6 +143,34 @@ if (signupForm) {
     });
 }
 
+// Google Sign-in (Login page)
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+googleLoginBtn?.addEventListener('click', async () => {
+    try {
+        const provider = new GoogleAuthProvider();
+        const { user } = await signInWithPopup(auth, provider);
+        await upsertUserDoc(user);
+        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Google login error:', error);
+        alert('Failed to sign in with Google');
+    }
+});
+
+// Google Sign-up (Signup page)
+const googleSignupBtn = document.getElementById('googleSignupBtn');
+googleSignupBtn?.addEventListener('click', async () => {
+    try {
+        const provider = new GoogleAuthProvider();
+        const { user } = await signInWithPopup(auth, provider);
+        await upsertUserDoc(user);
+        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Google signup error:', error);
+        alert('Failed to sign up with Google');
+    }
+});
+
 // Auth state change handler
 onAuthStateChanged(auth, async (user) => {
     if (user && !isRedirecting) {
@@ -172,5 +224,4 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
 });
-
 

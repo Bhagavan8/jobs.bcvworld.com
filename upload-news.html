@@ -73,6 +73,18 @@
                         <textarea class="form-control paragraph-text" rows="3" placeholder="Paragraph text"></textarea>
                         <button class="btn btn-outline-danger remove-paragraph" type="button">Remove</button>
                     </div>
+                    <div class="mt-2">
+                        <div class="subpoints-container"></div>
+                        <button type="button" class="btn btn-sm btn-secondary add-subpoint">Add Sub-point</button>
+                    </div>
+                </div>
+            </template>
+
+            <template id="subpointTemplate">
+                <div class="input-group mb-2 subpoint-item">
+                    <textarea class="form-control subpoint-text" rows="2" placeholder="Sub-point"></textarea>
+                    <button class="btn btn-outline-dark toggle-bold" type="button">Bold</button>
+                    <button class="btn btn-outline-danger remove-subpoint" type="button">Remove</button>
                 </div>
             </template>
 
