@@ -269,6 +269,142 @@ function showError(cardElement, growthElement) {
     growthElement.className = 'card-growth negative';
 }
 
+// Job Durations Stats
+function formatDuration(ms) {
+    if (!ms || ms <= 0) return '0s';
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const remMin = minutes % 60;
+    const remSec = seconds % 60;
+    if (hours > 0) return `${hours}h ${remMin}m`;
+    if (minutes > 0) return `${minutes}m ${remSec}s`;
+    return `${remSec}s`;
+}
+
+function updateDurationCard(currentMs, lastMs, valueEl, growthEl) {
+    valueEl.textContent = formatDuration(currentMs);
+    const growth = lastMs === 0 ? 100 : ((currentMs - lastMs) / lastMs) * 100;
+    const isPositive = growth >= 0;
+    growthEl.innerHTML = `<i class="bi bi-arrow-${isPositive ? 'up' : 'down'}"></i> ${Math.abs(growth).toFixed(1)}%`;
+    growthEl.className = `card-growth ${isPositive ? 'positive' : 'negative'}`;
+}
+
+async function initializeDurationStats() {
+    try {
+        const durationsSnap = await getDocs(collection(db, 'jobDurations'));
+        const items = durationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        const prevWeekStart = new Date(weekStart);
+        prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+        const pickTimeField = (obj) => {
+            const candidates = ['recordedAt','endedAtMs','startedAtMs','endedAt','startedAt','timestamp','createdAt','updatedAt','date','time'];
+            for (const key of candidates) {
+                if (obj && key in obj && obj[key] != null) return key;
+            }
+            return null;
+        };
+        const timeKey = items.length ? pickTimeField(items[0]) || items.reduce((acc,it)=>acc||pickTimeField(it), null) : null;
+        const toDate = (ts) => {
+            if (!ts) return null;
+            if (typeof ts === 'number') return new Date(ts);
+            if (ts.toDate) return ts.toDate();
+            if (typeof ts === 'string') {
+                const d = new Date(ts);
+                if (!isNaN(d.getTime())) return d;
+                const parts = ts.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (parts) return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
+            }
+            return null;
+        };
+        const getTime = (it) => {
+            // Prefer recordedAt Timestamp, then endedAtMs, then startedAtMs
+            if (it.recordedAt) return toDate(it.recordedAt);
+            if (it.endedAtMs) return toDate(it.endedAtMs);
+            if (it.startedAtMs) return toDate(it.startedAtMs);
+            if (timeKey) return toDate(it[timeKey]);
+            return null;
+        };
+
+        const sumMs = (filterFn) => items.reduce((sum, it) => {
+            const t = getTime(it);
+            if (!t) return sum;
+            return filterFn(t) ? sum + (it.durationMs || 0) : sum;
+        }, 0);
+
+        let todayMs, yesterdayMs, weeklyMs, lastWeekMs, monthlyMs, lastMonthMs;
+        const validTimes = items.filter(it => getTime(it)).length;
+        if (validTimes > 0) {
+            todayMs = sumMs(t => t >= today);
+            yesterdayMs = sumMs(t => t >= yesterday && t < today);
+            weeklyMs = sumMs(t => t >= weekStart);
+            lastWeekMs = sumMs(t => t >= prevWeekStart && t < weekStart);
+            monthlyMs = sumMs(t => t >= monthStart && t < thisMonthEnd);
+            lastMonthMs = sumMs(t => t >= lastMonthStart && t < monthStart);
+        } else {
+            // Fallback: no timestamps present; show totals across all docs
+            const totalMs = items.reduce((s,it) => s + (it.durationMs || 0), 0);
+            todayMs = totalMs;
+            yesterdayMs = 0;
+            weeklyMs = totalMs;
+            lastWeekMs = 0;
+            monthlyMs = totalMs;
+            lastMonthMs = 0;
+        }
+
+        // Fresher durations (current month) based on jobs.experience
+        const jobIdSet = new Set(items.map(it => it.jobId).filter(Boolean));
+        const jobDocs = await Promise.all(Array.from(jobIdSet).map(async (jid) => {
+            try {
+                const s = await getDoc(doc(db, 'jobs', jid));
+                return s.exists() ? { id: jid, data: s.data() } : null;
+            } catch (e) { return null; }
+        }));
+        const fresherIds = new Set(jobDocs.filter(j => j && (String(j.data.experience || '').toLowerCase().includes('fresh'))).map(j => j.id));
+        const fresherMs = items.reduce((sum, it) => {
+            const t = getTime(it);
+            if (!t) return sum;
+            if (t >= monthStart && t < thisMonthEnd && fresherIds.has(it.jobId)) return sum + (it.durationMs || 0);
+            return sum;
+        }, 0);
+        const fresherLastMonthMs = items.reduce((sum, it) => {
+            const t = getTime(it);
+            if (!t) return sum;
+            if (t >= lastMonthStart && t < monthStart && fresherIds.has(it.jobId)) return sum + (it.durationMs || 0);
+            return sum;
+        }, 0);
+
+        updateDurationCard(fresherMs, fresherLastMonthMs,
+            document.getElementById('fresherDurationTotal'),
+            document.getElementById('fresherDurationGrowth'));
+        updateDurationCard(todayMs, yesterdayMs,
+            document.getElementById('todayDurationTotal'),
+            document.getElementById('todayDurationGrowth'));
+        updateDurationCard(weeklyMs, lastWeekMs,
+            document.getElementById('weeklyDurationTotal'),
+            document.getElementById('weeklyDurationGrowth'));
+        updateDurationCard(monthlyMs, lastMonthMs,
+            document.getElementById('monthlyDurationTotal'),
+            document.getElementById('monthlyDurationGrowth'));
+    } catch (error) {
+        console.error('Error loading job durations:', error);
+        ['fresher','today','weekly','monthly'].forEach(type => {
+            const valEl = document.getElementById(`${type}DurationTotal`);
+            const growthEl = document.getElementById(`${type}DurationGrowth`);
+            if (valEl && growthEl) showError(valEl, growthEl);
+        });
+    }
+}
 // Add this function to handle jobs overview
 async function initializeJobsOverview() {
     const jobsRef = collection(db, 'jobs');
@@ -473,6 +609,7 @@ auth.onAuthStateChanged((user) => {
     if (user) {
          initializeStatsCards();
         initializeJobsOverview();
+        initializeDurationStats();
         // Existing code for logged-in users
         const userRef = doc(db, 'users', user.uid);
         getDoc(userRef).then((doc) => {
@@ -539,6 +676,7 @@ auth.onAuthStateChanged((user) => {
             
             // Set up interval to update daily (every hour)
             setInterval(updateDailyJobCounts, 3600000);
+            setInterval(initializeDurationStats, 3600000);
         });
     } else {
         // Hide all menu items except dashboard
@@ -744,4 +882,3 @@ export function setupRoleBasedMenu(userRole) {
     // Set up interval to update daily (every hour)
     setInterval(updateDailyJobCounts, 3600000);
     
-
