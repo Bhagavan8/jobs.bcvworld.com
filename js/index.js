@@ -296,16 +296,21 @@ async function initializeDurationStats() {
         const items = durationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        const prevWeekStart = new Date(weekStart);
-        prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayEnd = new Date(todayStart);
+        todayEnd.setDate(todayEnd.getDate() + 1);
+        const last7Start = new Date(now);
+        last7Start.setDate(last7Start.getDate() - 7);
+        const prev7Start = new Date(now);
+        prev7Start.setDate(prev7Start.getDate() - 14);
+        const prev7End = new Date(now);
+        prev7End.setDate(prev7End.getDate() - 7);
+        const last30Start = new Date(now);
+        last30Start.setDate(last30Start.getDate() - 30);
+        const prev30Start = new Date(now);
+        prev30Start.setDate(prev30Start.getDate() - 60);
+        const prev30End = new Date(now);
+        prev30End.setDate(prev30End.getDate() - 30);
 
         const pickTimeField = (obj) => {
             const candidates = ['recordedAt','endedAtMs','startedAtMs','endedAt','startedAt','timestamp','createdAt','updatedAt','date','time'];
@@ -328,29 +333,40 @@ async function initializeDurationStats() {
             return null;
         };
         const getTime = (it) => {
-            // Prefer recordedAt Timestamp, then endedAtMs, then startedAtMs
+            // Prefer endedAtMs as the event time, then recordedAt, then startedAtMs
+            if (it.endedAtMs != null) return toDate(typeof it.endedAtMs === 'string' ? Number(it.endedAtMs) : it.endedAtMs);
             if (it.recordedAt) return toDate(it.recordedAt);
-            if (it.endedAtMs) return toDate(it.endedAtMs);
-            if (it.startedAtMs) return toDate(it.startedAtMs);
+            if (it.startedAtMs != null) return toDate(typeof it.startedAtMs === 'string' ? Number(it.startedAtMs) : it.startedAtMs);
             if (timeKey) return toDate(it[timeKey]);
             return null;
+        };
+
+        const getDuration = (it) => {
+            const raw = it.durationMs;
+            const dur = typeof raw === 'string' ? Number(raw) : (typeof raw === 'number' ? raw : 0);
+            if (dur && dur > 0) return dur;
+            const start = it.startedAtMs != null ? (typeof it.startedAtMs === 'string' ? Number(it.startedAtMs) : it.startedAtMs) : null;
+            const end = it.endedAtMs != null ? (typeof it.endedAtMs === 'string' ? Number(it.endedAtMs) : it.endedAtMs) : null;
+            if (start && end && end >= start) return end - start;
+            return 0;
         };
 
         const sumMs = (filterFn) => items.reduce((sum, it) => {
             const t = getTime(it);
             if (!t) return sum;
-            return filterFn(t) ? sum + (it.durationMs || 0) : sum;
+            const dur = getDuration(it);
+            return filterFn(t) ? sum + dur : sum;
         }, 0);
 
         let todayMs, yesterdayMs, weeklyMs, lastWeekMs, monthlyMs, lastMonthMs;
         const validTimes = items.filter(it => getTime(it)).length;
         if (validTimes > 0) {
-            todayMs = sumMs(t => t >= today);
-            yesterdayMs = sumMs(t => t >= yesterday && t < today);
-            weeklyMs = sumMs(t => t >= weekStart);
-            lastWeekMs = sumMs(t => t >= prevWeekStart && t < weekStart);
-            monthlyMs = sumMs(t => t >= monthStart && t < thisMonthEnd);
-            lastMonthMs = sumMs(t => t >= lastMonthStart && t < monthStart);
+            todayMs = sumMs(t => t >= todayStart && t < todayEnd);
+            yesterdayMs = sumMs(t => t < todayStart && t >= new Date(todayStart.getTime() - 24*60*60*1000));
+            weeklyMs = sumMs(t => t >= last7Start);
+            lastWeekMs = sumMs(t => t >= prev7Start && t < prev7End);
+            monthlyMs = sumMs(t => t >= last30Start);
+            lastMonthMs = sumMs(t => t >= prev30Start && t < prev30End);
         } else {
             // Fallback: no timestamps present; show totals across all docs
             const totalMs = items.reduce((s,it) => s + (it.durationMs || 0), 0);
@@ -374,15 +390,31 @@ async function initializeDurationStats() {
         const fresherMs = items.reduce((sum, it) => {
             const t = getTime(it);
             if (!t) return sum;
-            if (t >= monthStart && t < thisMonthEnd && fresherIds.has(it.jobId)) return sum + (it.durationMs || 0);
+            const dur = getDuration(it);
+            if (t >= last30Start && fresherIds.has(it.jobId)) return sum + dur;
             return sum;
         }, 0);
         const fresherLastMonthMs = items.reduce((sum, it) => {
             const t = getTime(it);
             if (!t) return sum;
-            if (t >= lastMonthStart && t < monthStart && fresherIds.has(it.jobId)) return sum + (it.durationMs || 0);
+            const dur = getDuration(it);
+            if (t >= prev30Start && t < prev30End && fresherIds.has(it.jobId)) return sum + dur;
             return sum;
         }, 0);
+
+        console.log('[DurationStats]', {
+            items: items.length,
+            todayMs, yesterdayMs, weeklyMs, lastWeekMs, monthlyMs, lastMonthMs,
+            timeKey,
+            sample: items.slice(0,3).map(it => ({
+                jobId: it.jobId,
+                durationMs: Number(it.durationMs) || 0,
+                recordedAt: it.recordedAt || null,
+                endedAtMs: it.endedAtMs || null,
+                startedAtMs: it.startedAtMs || null,
+                time: getTime(it)
+            }))
+        });
 
         updateDurationCard(fresherMs, fresherLastMonthMs,
             document.getElementById('fresherDurationTotal'),

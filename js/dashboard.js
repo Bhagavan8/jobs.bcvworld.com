@@ -238,8 +238,35 @@ function updatePagination(type, totalPages, paginationElement) {
     ul.appendChild(prevLi);
 
     // Page numbers
-    for (let i = 1; i <= totalPages; i++) {
+    const delta = 2;
+    const range = [];
+
+    // Always add 1 and totalPages, plus the range around current page
+    range.push(1);
+    for (let i = currentPage[type] - delta; i <= currentPage[type] + delta; i++) {
+        if (i > 1 && i < totalPages) {
+            range.push(i);
+        }
+    }
+    range.push(totalPages);
+
+    // Remove duplicates and sort (though logic above mostly keeps order)
+    const uniqueRange = [...new Set(range)].sort((a, b) => a - b);
+
+    let l;
+    for (const i of uniqueRange) {
+        if (l) {
+            if (i - l === 2) {
+                ul.appendChild(createPageButton(l + 1));
+            } else if (i - l !== 1) {
+                const li = document.createElement('li');
+                li.className = 'page-item disabled';
+                li.innerHTML = '<span class="page-link">...</span>';
+                ul.appendChild(li);
+            }
+        }
         ul.appendChild(createPageButton(i, i === currentPage[type]));
+        l = i;
     }
 
     // Next button
