@@ -208,7 +208,26 @@ function markAllAsRead() {
 }
 
 function formatTimestamp(timestamp) {
-    const date = timestamp.toDate();
+    if (!timestamp) return '';
+    
+    let date;
+    try {
+        if (timestamp && typeof timestamp.toDate === 'function') {
+            date = timestamp.toDate();
+        } else if (timestamp instanceof Date) {
+            date = timestamp;
+        } else {
+            // Try to parse string or number
+            date = new Date(timestamp);
+        }
+    } catch (e) {
+        console.warn('Error formatting timestamp:', e);
+        return '';
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return '';
+
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -362,85 +381,74 @@ function showError(cardElement, growthElement) {
 // Apply Stats
 async function initializeApplyStats() {
     // Show loading state
-    ['yesterday', 'today', 'weekly', 'monthly'].forEach(type => {
-        const valEl = document.getElementById(`${type}ApplyTotal`);
+    ['totalApplyTotal', 'totalCommentsTotal', 'totalSuggestionsTotal', 'monthlyJobViewsTotal'].forEach(id => {
+        const valEl = document.getElementById(id);
         if (valEl) valEl.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
     });
 
     try {
-        const collections = ['jobs', 'bankJobs', 'governmentJobs'];
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // 1. Total Applies (Sum of applyCount from all jobs)
+        // Since we can't easily query "sum of a field" across multiple collections without reading all docs,
+        // we will read all docs from jobs, bankJobs, governmentJobs.
+        // This might be expensive for large datasets, but it's the only way without aggregation functions (which might not be enabled or require specific setup).
+        
         let totalApplies = 0;
-        let jobCount = 0;
-        let maxApplies = 0;
-        let activeJobsWithApplies = 0;
-
-        for (const colName of collections) {
+        const jobCollections = ['jobs', 'bankJobs', 'governmentJobs'];
+        
+        await Promise.all(jobCollections.map(async (colName) => {
             const snapshot = await getDocs(collection(db, colName));
-            jobCount += snapshot.size;
             snapshot.forEach(doc => {
-                const data = doc.data();
-                const applies = data.applyCount || 0;
-                totalApplies += applies;
-                if (applies > maxApplies) maxApplies = applies;
-                if (applies > 0) activeJobsWithApplies++;
+                totalApplies += (doc.data().applyCount || 0);
             });
-        }
+        }));
 
-        const avgApplies = jobCount > 0 ? (totalApplies / jobCount) : 0;
-        const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
+        updateApplyStatsCard('totalApplyTotal', totalApplies, "Total Applies");
 
-        // Update UI - Repurposing the cards for available data
-        // Card 1: Total Applies (was Yesterday)
-        updateApplyStatsCardSimple('yesterdayApplyTotal', 'yesterdayApplyGrowth', totalApplies, "Total Applies");
-        
-        // Card 2: Average Applies (was Today)
-        updateApplyStatsCardSimple('todayApplyTotal', 'todayApplyGrowth', avgApplies.toFixed(1), "Avg Applies/Job");
-        
-        // Card 3: Max Applies (was Weekly)
-        updateApplyStatsCardSimple('weeklyApplyTotal', 'weeklyApplyGrowth', maxApplies, "Max Applies (Single Job)");
-        
-        // Card 4: Active Jobs with Applies (was Monthly)
-        // User requested current month display
-        console.log(`Updating monthly card with label: Active Jobs (${currentMonthName})`);
-        updateApplyStatsCardSimple('monthlyApplyTotal', 'monthlyApplyGrowth', activeJobsWithApplies, `Active Jobs (${currentMonthName})`);
+        // 2. Total Comments (Count of jobComments docs)
+        const commentsSnapshot = await getDocs(collection(db, 'jobComments'));
+        updateApplyStatsCard('totalCommentsTotal', commentsSnapshot.size, "Total Comments");
+
+        // 3. Total Suggestions (Count of suggestions docs)
+        const suggestionsSnapshot = await getDocs(collection(db, 'suggestions'));
+        updateApplyStatsCard('totalSuggestionsTotal', suggestionsSnapshot.size, "Total Suggestions");
+
+        // 4. Monthly Job Views
+        const monthlyViewsQuery = query(
+            collection(db, 'jobViews'), 
+            where('timestamp', '>=', Timestamp.fromDate(monthStart))
+        );
+        const monthlyViewsSnapshot = await getDocs(monthlyViewsQuery);
+        updateApplyStatsCard('monthlyJobViewsTotal', monthlyViewsSnapshot.size, "Monthly Job Views");
+
 
     } catch (error) {
-        console.error('Error initializing apply stats:', error);
-        ['yesterday','today','weekly','monthly'].forEach(type => {
-            const valEl = document.getElementById(`${type}ApplyTotal`);
-            if (valEl) valEl.textContent = 'Error';
+        console.error('Error initializing secondary stats:', error);
+        ['totalApplyTotal', 'totalCommentsTotal', 'totalSuggestionsTotal', 'monthlyJobViewsTotal'].forEach(id => {
+            const valEl = document.getElementById(id);
+            if (valEl) valEl.textContent = '0';
         });
     }
 }
 
-function updateApplyStatsCardSimple(valId, growthId, value, label) {
+function updateApplyStatsCard(valId, value, label) {
     const valEl = document.getElementById(valId);
-    const growthEl = document.getElementById(growthId);
-    
-    // Update value
     if (valEl) {
         valEl.textContent = value.toLocaleString();
-        
-        // Update label using a more robust selector
-        // Find the parent .card-info container and then the p tag within it
         const container = valEl.closest('.card-info');
         if (container) {
             const labelEl = container.querySelector('p');
-            if (labelEl) {
-                labelEl.textContent = label;
-            }
-        } else {
-             // Fallback to previous sibling check just in case
-            const labelEl = valEl.nextElementSibling;
-            if (labelEl && labelEl.tagName === 'P') {
-                labelEl.textContent = label;
-            }
+            if (labelEl) labelEl.textContent = label;
         }
-    }
-    
-    // Hide growth indicator since we don't have historical data
-    if (growthEl) {
-        growthEl.style.display = 'none';
+        
+        // Ensure growth element is visible (will be updated by updateGrowthPercentage)
+        const card = valEl.closest('.stats-card');
+        if (card) {
+            const growthEl = card.querySelector('.card-growth');
+            if (growthEl) growthEl.style.display = 'block';
+        }
     }
 }
 
@@ -448,24 +456,35 @@ function updateApplyStatsCardSimple(valId, growthId, value, label) {
 window.trackJobApply = async (jobId, collectionName = 'jobs') => {
     try {
         const jobRef = doc(db, collectionName, jobId);
-        // Increment applyCount atomically
-        // Note: increment requires importing it
-        // Since we didn't import 'increment', we'll do a read-write or assume user adds it
-        // But for now let's just use updateDoc with current value + 1 if we can't use increment
-        // However, standard way is increment(1). 
-        // I'll try to use increment if I can import it, but I can't easily change imports at top without risk.
-        // I'll just use getDoc -> updateDoc for safety in this context
         
         const jobSnap = await getDoc(jobRef);
         if (jobSnap.exists()) {
             const currentCount = jobSnap.data().applyCount || 0;
+            
+            // 1. Update job document count
             await updateDoc(jobRef, {
                 applyCount: currentCount + 1,
                 lastAppliedAt: serverTimestamp()
             });
-            console.log(`Application for job ${jobId} in ${collectionName} tracked successfully (Count: ${currentCount + 1}).`);
-            // Refresh stats if on dashboard
-            initializeApplyStats(); 
+            
+            // 2. Add to job_applications history
+            try {
+                await addDoc(collection(db, 'job_applications'), {
+                    jobId: jobId,
+                    jobCollection: collectionName,
+                    timestamp: serverTimestamp(),
+                    appliedAt: new Date().toISOString()
+                });
+            } catch (err) {
+                console.error("Error creating application history:", err);
+            }
+
+            console.log(`Application for job ${jobId} in ${collectionName} tracked successfully.`);
+            
+            // Refresh stats if function is available
+            if (typeof initializeApplyStats === 'function') {
+                initializeApplyStats(); 
+            }
         } else {
             console.warn(`Job ${jobId} not found in collection ${collectionName}`);
         }
@@ -480,6 +499,8 @@ window.generateTestApplyData = async () => {
     const collections = ['jobs', 'bankJobs', 'governmentJobs'];
     
     let updatedCount = 0;
+    let historyCount = 0;
+    const now = new Date();
 
     for (const colName of collections) {
         const snapshot = await getDocs(collection(db, colName));
@@ -492,22 +513,45 @@ window.generateTestApplyData = async () => {
         const batch = writeBatch(db);
         let batchCount = 0;
 
-        snapshot.forEach(doc => {
+        for (const docSnapshot of snapshot.docs) {
             // Assign random apply count between 0 and 50
             const randomApplies = Math.floor(Math.random() * 51);
-            batch.update(doc.ref, { applyCount: randomApplies });
+            
+            // Assign random date within last 7 days for some, older for others
+            const randomDays = Math.floor(Math.random() * 10); // 0-9 days ago
+            const randomDate = new Date(now);
+            randomDate.setDate(randomDate.getDate() - randomDays);
+            
+            // Update job doc fields
+            batch.update(docSnapshot.ref, { 
+                applyCount: randomApplies,
+                lastAppliedAt: Timestamp.fromDate(randomDate)
+            });
+            
+            // Create a history entry in job_applications to match this "last apply"
+            // This ensures stats work correctly for Today/Yesterday
+            if (randomApplies > 0) {
+                 await addDoc(collection(db, 'job_applications'), {
+                    jobId: docSnapshot.id,
+                    jobCollection: colName,
+                    timestamp: Timestamp.fromDate(randomDate),
+                    appliedAt: randomDate.toISOString()
+                });
+                historyCount++;
+            }
+
             batchCount++;
             updatedCount++;
-        });
+        }
 
         if (batchCount > 0) {
             await batch.commit();
-            console.log(`Updated ${batchCount} jobs in ${colName} with random apply counts.`);
+            console.log(`Updated ${batchCount} jobs in ${colName} with random apply counts and timestamps.`);
         }
     }
 
     if (updatedCount > 0) {
-        console.log(`Test data generated for ${updatedCount} total jobs. Refreshing stats...`);
+        console.log(`Test data generated: ${updatedCount} jobs updated, ${historyCount} history entries created. Refreshing stats...`);
         initializeApplyStats();
     } else {
         console.log('No jobs found in any collection to generate test data for.');
@@ -848,6 +892,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize menu visibility
         setupRoleBasedMenu(userRole);
         updateDailyJobCounts();
+        
+        // Initialize Apply Stats if function exists
+        if (typeof initializeApplyStats === 'function') {
+            initializeApplyStats();
+        }
     }
 });
 
