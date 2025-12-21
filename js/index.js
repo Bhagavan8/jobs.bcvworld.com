@@ -56,8 +56,8 @@ function initializeNotifications() {
         updateGlobalNotifications('message', snap);
     });
 
-    // Listen to Comments
-    onSnapshot(query(collection(db, 'comments'), orderBy('timestamp', 'desc'), limit(limits)), (snap) => {
+    // Listen to Job Comments
+    onSnapshot(query(collection(db, 'jobComments'), orderBy('timestamp', 'desc'), limit(limits)), (snap) => {
         updateGlobalNotifications('comment', snap);
     });
 
@@ -92,7 +92,8 @@ function updateGlobalNotifications(type, snapshot) {
             message = `${data.subject || 'Message'} from ${data.name || 'Anonymous'}`;
         } else if (type === 'comment') {
             title = 'New Comment';
-            message = `${data.userName || 'Someone'} commented on ${data.postTitle || 'a post'}`;
+            const target = data.postTitle || (data.jobId ? 'Job #' + data.jobId.substring(0,6) : 'a post');
+            message = `${data.userName || 'Someone'} commented on ${target}`;
         }
 
         items.push({

@@ -1,94 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comments Management - News Admin</title>
+    <title>Comments Management - Jobs Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/index.css">
+    <style>
+        .comment-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+        }
+
+        .comment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #495057;
+            font-size: 1rem;
+        }
+
+        .comment-text {
+            color: #212529;
+            line-height: 1.5;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .job-badge {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.75rem;
+            padding: 0.25em 0.6em;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .job-badge:hover {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">News Admin</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+
+<body class="admin-dashboard">
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-wrapper">
+                    <i class="bi bi-briefcase-fill logo-icon"></i>
+                    <h1 class="logo-text">Jobs<span> Admin</span></h1>
+                </div>
+                <button class="sidebar-toggle d-lg-none">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-menu">
+                <ul class="nav flex-column" id="sidebarMenu">
+                    <!-- Dashboard - visible to all roles -->
                     <li class="nav-item">
-                        <a class="nav-link" href="dashboard.html">Dashboard</a>
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Dashboard</span>
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="comments.html">Comments</a>
-                    </li>
+
+                    <!-- Admin & Employer Only Content -->
+                    <div id="adminEmployerContent" style="display: none;">
+                        <li class="nav-item">
+                            <a class="nav-link" href="upload-news.html">
+                                <i class="bi bi-newspaper"></i>
+                                <span>Upload News</span>
+                            </a>
+                        </li>
+
+                        <!-- Jobs Section -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse"
+                                data-bs-target="#jobs-collapse">
+                                <i class="bi bi-briefcase"></i>
+                                <span>Jobs</span>
+                                <i class="bi bi-chevron-down dropdown-arrow"></i>
+                            </a>
+                            <div class="collapse" id="jobs-collapse">
+                                <ul class="nav flex-column sub-menu" id="jobsSubmenu">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="jobs-upload.html">Private Jobs</a>
+                                    </li>
+                                    <!-- Admin Only Content -->
+                                    <div id="adminOnlyJobs" style="display: none;">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="govt-jobs-upload.html">Government Jobs</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="bank-jobs-upload.html">Banking Jobs</a>
+                                        </li>
+                                    </div>
+                                </ul>
+                            </div>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="profile-upload.html">
+                                <i class="bi bi-person-circle"></i>
+                                <span>Profile Upload</span>
+                            </a>
+                        </li>
+
+                        <!-- Admin Only Content -->
+                        <div id="adminOnlyContent" style="display: none;">
+                            <li class="nav-item">
+                                <a class="nav-link" href="affiliate-marketing.html">
+                                    <i class="bi bi-graph-up"></i>
+                                    <span>Affiliate Marketing</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="comments.html">
+                                    <i class="bi bi-chat-dots"></i>
+                                    <span>Comments</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="messages.html">
+                                    <i class="bi bi-envelope-paper"></i>
+                                    <span>Messages & Suggestions</span>
+                                </a>
+                            </li>
+                        </div>
+                    </div>
                 </ul>
-                <span class="navbar-text me-3" id="userName">Guest</span>
-                <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
             </div>
-        </div>
-    </nav>
 
-    <div class="container mt-4">
-        <div class="row mb-4">
-            <div class="col">
-                <h2>Comments Management</h2>
-            </div>
-        </div>
-
-        <!-- Comments Filter -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <select class="form-select" id="statusFilter">
-                            <option value="all">All Status</option>
-                            <option value="approved">Approved</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" id="contentTypeFilter">
-                            <option value="all">All Content Types</option>
-                            <option value="jobs">Jobs</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" id="searchComments" placeholder="Search comments...">
+            <div class="sidebar-footer">
+                <div class="user-profile-container">
+                    <div class="user-profile">
+                        <img src="/images/default.webp" alt="User" class="profile-img">
+                        <div class="profile-info">
+                            <h6 class="profile-name" id="sidebarUserName">Loading...</h6>
+                            <span class="profile-role" id="sidebarUserRole">Admin</span>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <!-- Comments Table -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>User Info</th>
-                                <th>Comment</th>
-                                <th>Post Details</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="commentsTableBody"></tbody>
-                    </table>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggle d-lg-none me-3">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h4 class="page-title mb-0">Comments Management</h4>
+                </div>
+
+                <div class="top-nav-actions">
+                    <div class="d-flex align-items-center gap-3">
+                         <div class="search-box d-none d-md-flex align-items-center" style="background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 8px;">
+                            <i class="bi bi-search text-muted me-2"></i>
+                            <input type="text" id="searchComments" placeholder="Search comments..." style="border: none; background: transparent; outline: none; width: 200px;">
+                        </div>
+                        <div class="user-menu" id="userMenuDropdown">
+                            <span class="d-none d-md-block fw-medium me-2" id="userName">Admin</span>
+                            <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-primary">
+                                    <i class="bi bi-chat-left-text me-2"></i>User Comments
+                                </h5>
+                                <div class="d-md-none">
+                                    <!-- Mobile Search Trigger could go here, for now just hidden on mobile or rely on scroll -->
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="commentsContainer" class="list-group list-group-flush">
+                                    <!-- Loading Skeletons -->
+                                    <div class="p-4">
+                                        <div class="d-flex gap-3 mb-4">
+                                            <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+                                            <div class="flex-grow-1">
+                                                <div class="skeleton mb-2" style="width: 30%; height: 20px;"></div>
+                                                <div class="skeleton mb-2" style="width: 100%; height: 16px;"></div>
+                                                <div class="skeleton" style="width: 80%; height: 16px;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-3">
+                                            <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+                                            <div class="flex-grow-1">
+                                                <div class="skeleton mb-2" style="width: 30%; height: 20px;"></div>
+                                                <div class="skeleton mb-2" style="width: 100%; height: 16px;"></div>
+                                                <div class="skeleton" style="width: 80%; height: 16px;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Pagination Footer -->
+                            <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+                                <button class="btn btn-sm btn-outline-secondary" id="prevBtn" disabled>
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </button>
+                                <span class="small text-muted" id="pageIndicator">Page 1</span>
+                                <button class="btn btn-sm btn-outline-secondary" id="nextBtn" disabled>
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="actionToast" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">
+                    Action completed successfully.
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Delete Comment?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to delete this comment? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
     <script type="module" src="js/comments.js"></script>
 </body>
 </html>
