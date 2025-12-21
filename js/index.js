@@ -374,7 +374,8 @@ window.trackJobApply = async (jobId, collectionName = 'jobs') => {
         if (jobSnap.exists()) {
             const currentCount = jobSnap.data().applyCount || 0;
             await updateDoc(jobRef, {
-                applyCount: currentCount + 1
+                applyCount: currentCount + 1,
+                lastAppliedAt: serverTimestamp()
             });
             console.log(`Application for job ${jobId} in ${collectionName} tracked successfully (Count: ${currentCount + 1}).`);
             // Refresh stats if on dashboard
@@ -761,6 +762,7 @@ export function setupRoleBasedMenu(userRole) {
     const adminEmployerContent = document.getElementById('adminEmployerContent');
     const adminOnlyContent = document.getElementById('adminOnlyContent');
     const adminOnlyJobs = document.getElementById('adminOnlyJobs');
+    const quickActionsSection = document.getElementById('quickActionsSection');
 
     if (!adminEmployerContent || !adminOnlyContent || !adminOnlyJobs) {
         console.error('Menu elements not found');
@@ -773,24 +775,28 @@ export function setupRoleBasedMenu(userRole) {
             adminEmployerContent.style.display = 'block';
             adminOnlyContent.style.display = 'block';
             adminOnlyJobs.style.display = 'block';
+            if (quickActionsSection) quickActionsSection.style.display = 'block';
             break;
         case 'employer':
             // Show limited content for employer
             adminEmployerContent.style.display = 'block';
             adminOnlyContent.style.display = 'none';
             adminOnlyJobs.style.display = 'none';
+            if (quickActionsSection) quickActionsSection.style.display = 'none';
             break;
         case 'user':
             // Show only dashboard for regular users
             adminEmployerContent.style.display = 'none';
             adminOnlyContent.style.display = 'none';
             adminOnlyJobs.style.display = 'none';
+            if (quickActionsSection) quickActionsSection.style.display = 'none';
             break;
         default:
             console.warn('Unknown user role:', userRole);
             adminEmployerContent.style.display = 'none';
             adminOnlyContent.style.display = 'none';
             adminOnlyJobs.style.display = 'none';
+            if (quickActionsSection) quickActionsSection.style.display = 'none';
     }
 }
 
