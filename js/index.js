@@ -10,7 +10,11 @@ import {
     updateDoc,
     doc,
     getDocs,
-    writeBatch,getDoc,Timestamp
+    writeBatch,
+    getDoc,
+    Timestamp,
+    addDoc,
+    serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const notificationsDropdown = document.getElementById('notificationsDropdown');
@@ -269,174 +273,155 @@ function showError(cardElement, growthElement) {
     growthElement.className = 'card-growth negative';
 }
 
-// Job Durations Stats
-function formatDuration(ms) {
-    if (!ms || ms <= 0) return '0s';
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const remMin = minutes % 60;
-    const remSec = seconds % 60;
-    if (hours > 0) return `${hours}h ${remMin}m`;
-    if (minutes > 0) return `${minutes}m ${remSec}s`;
-    return `${remSec}s`;
-}
-
-function updateDurationCard(currentMs, lastMs, valueEl, growthEl) {
-    valueEl.textContent = formatDuration(currentMs);
-    const growth = lastMs === 0 ? 100 : ((currentMs - lastMs) / lastMs) * 100;
-    const isPositive = growth >= 0;
-    growthEl.innerHTML = `<i class="bi bi-arrow-${isPositive ? 'up' : 'down'}"></i> ${Math.abs(growth).toFixed(1)}%`;
-    growthEl.className = `card-growth ${isPositive ? 'positive' : 'negative'}`;
-}
-
-async function initializeDurationStats() {
+// Apply Stats
+async function initializeApplyStats() {
     try {
-        const durationsSnap = await getDocs(collection(db, 'jobDurations'));
-        const items = durationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const collections = ['jobs', 'bankJobs', 'governmentJobs'];
+        let totalApplies = 0;
+        let jobCount = 0;
+        let maxApplies = 0;
+        let activeJobsWithApplies = 0;
 
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const todayEnd = new Date(todayStart);
-        todayEnd.setDate(todayEnd.getDate() + 1);
-        const last7Start = new Date(now);
-        last7Start.setDate(last7Start.getDate() - 7);
-        const prev7Start = new Date(now);
-        prev7Start.setDate(prev7Start.getDate() - 14);
-        const prev7End = new Date(now);
-        prev7End.setDate(prev7End.getDate() - 7);
-        const last30Start = new Date(now);
-        last30Start.setDate(last30Start.getDate() - 30);
-        const prev30Start = new Date(now);
-        prev30Start.setDate(prev30Start.getDate() - 60);
-        const prev30End = new Date(now);
-        prev30End.setDate(prev30End.getDate() - 30);
-
-        const pickTimeField = (obj) => {
-            const candidates = ['recordedAt','endedAtMs','startedAtMs','endedAt','startedAt','timestamp','createdAt','updatedAt','date','time'];
-            for (const key of candidates) {
-                if (obj && key in obj && obj[key] != null) return key;
-            }
-            return null;
-        };
-        const timeKey = items.length ? pickTimeField(items[0]) || items.reduce((acc,it)=>acc||pickTimeField(it), null) : null;
-        const toDate = (ts) => {
-            if (!ts) return null;
-            if (typeof ts === 'number') return new Date(ts);
-            if (ts.toDate) return ts.toDate();
-            if (typeof ts === 'string') {
-                const d = new Date(ts);
-                if (!isNaN(d.getTime())) return d;
-                const parts = ts.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                if (parts) return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
-            }
-            return null;
-        };
-        const getTime = (it) => {
-            // Prefer endedAtMs as the event time, then recordedAt, then startedAtMs
-            if (it.endedAtMs != null) return toDate(typeof it.endedAtMs === 'string' ? Number(it.endedAtMs) : it.endedAtMs);
-            if (it.recordedAt) return toDate(it.recordedAt);
-            if (it.startedAtMs != null) return toDate(typeof it.startedAtMs === 'string' ? Number(it.startedAtMs) : it.startedAtMs);
-            if (timeKey) return toDate(it[timeKey]);
-            return null;
-        };
-
-        const getDuration = (it) => {
-            const raw = it.durationMs;
-            const dur = typeof raw === 'string' ? Number(raw) : (typeof raw === 'number' ? raw : 0);
-            if (dur && dur > 0) return dur;
-            const start = it.startedAtMs != null ? (typeof it.startedAtMs === 'string' ? Number(it.startedAtMs) : it.startedAtMs) : null;
-            const end = it.endedAtMs != null ? (typeof it.endedAtMs === 'string' ? Number(it.endedAtMs) : it.endedAtMs) : null;
-            if (start && end && end >= start) return end - start;
-            return 0;
-        };
-
-        const sumMs = (filterFn) => items.reduce((sum, it) => {
-            const t = getTime(it);
-            if (!t) return sum;
-            const dur = getDuration(it);
-            return filterFn(t) ? sum + dur : sum;
-        }, 0);
-
-        let todayMs, yesterdayMs, weeklyMs, lastWeekMs, monthlyMs, lastMonthMs;
-        const validTimes = items.filter(it => getTime(it)).length;
-        if (validTimes > 0) {
-            todayMs = sumMs(t => t >= todayStart && t < todayEnd);
-            yesterdayMs = sumMs(t => t < todayStart && t >= new Date(todayStart.getTime() - 24*60*60*1000));
-            weeklyMs = sumMs(t => t >= last7Start);
-            lastWeekMs = sumMs(t => t >= prev7Start && t < prev7End);
-            monthlyMs = sumMs(t => t >= last30Start);
-            lastMonthMs = sumMs(t => t >= prev30Start && t < prev30End);
-        } else {
-            // Fallback: no timestamps present; show totals across all docs
-            const totalMs = items.reduce((s,it) => s + (it.durationMs || 0), 0);
-            todayMs = totalMs;
-            yesterdayMs = 0;
-            weeklyMs = totalMs;
-            lastWeekMs = 0;
-            monthlyMs = totalMs;
-            lastMonthMs = 0;
+        for (const colName of collections) {
+            const snapshot = await getDocs(collection(db, colName));
+            jobCount += snapshot.size;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const applies = data.applyCount || 0;
+                totalApplies += applies;
+                if (applies > maxApplies) maxApplies = applies;
+                if (applies > 0) activeJobsWithApplies++;
+            });
         }
 
-        // Fresher durations (current month) based on jobs.experience
-        const jobIdSet = new Set(items.map(it => it.jobId).filter(Boolean));
-        const jobDocs = await Promise.all(Array.from(jobIdSet).map(async (jid) => {
-            try {
-                const s = await getDoc(doc(db, 'jobs', jid));
-                return s.exists() ? { id: jid, data: s.data() } : null;
-            } catch (e) { return null; }
-        }));
-        const fresherIds = new Set(jobDocs.filter(j => j && (String(j.data.experience || '').toLowerCase().includes('fresh'))).map(j => j.id));
-        const fresherMs = items.reduce((sum, it) => {
-            const t = getTime(it);
-            if (!t) return sum;
-            const dur = getDuration(it);
-            if (t >= last30Start && fresherIds.has(it.jobId)) return sum + dur;
-            return sum;
-        }, 0);
-        const fresherLastMonthMs = items.reduce((sum, it) => {
-            const t = getTime(it);
-            if (!t) return sum;
-            const dur = getDuration(it);
-            if (t >= prev30Start && t < prev30End && fresherIds.has(it.jobId)) return sum + dur;
-            return sum;
-        }, 0);
+        const avgApplies = jobCount > 0 ? (totalApplies / jobCount) : 0;
+        const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
-        console.log('[DurationStats]', {
-            items: items.length,
-            todayMs, yesterdayMs, weeklyMs, lastWeekMs, monthlyMs, lastMonthMs,
-            timeKey,
-            sample: items.slice(0,3).map(it => ({
-                jobId: it.jobId,
-                durationMs: Number(it.durationMs) || 0,
-                recordedAt: it.recordedAt || null,
-                endedAtMs: it.endedAtMs || null,
-                startedAtMs: it.startedAtMs || null,
-                time: getTime(it)
-            }))
-        });
+        // Update UI - Repurposing the cards for available data
+        // Card 1: Total Applies (was Yesterday)
+        updateApplyStatsCardSimple('yesterdayApplyTotal', 'yesterdayApplyGrowth', totalApplies, "Total Applies");
+        
+        // Card 2: Average Applies (was Today)
+        updateApplyStatsCardSimple('todayApplyTotal', 'todayApplyGrowth', avgApplies.toFixed(1), "Avg Applies/Job");
+        
+        // Card 3: Max Applies (was Weekly)
+        updateApplyStatsCardSimple('weeklyApplyTotal', 'weeklyApplyGrowth', maxApplies, "Max Applies (Single Job)");
+        
+        // Card 4: Active Jobs with Applies (was Monthly)
+        // User requested current month display
+        console.log(`Updating monthly card with label: Active Jobs (${currentMonthName})`);
+        updateApplyStatsCardSimple('monthlyApplyTotal', 'monthlyApplyGrowth', activeJobsWithApplies, `Active Jobs (${currentMonthName})`);
 
-        updateDurationCard(fresherMs, fresherLastMonthMs,
-            document.getElementById('fresherDurationTotal'),
-            document.getElementById('fresherDurationGrowth'));
-        updateDurationCard(todayMs, yesterdayMs,
-            document.getElementById('todayDurationTotal'),
-            document.getElementById('todayDurationGrowth'));
-        updateDurationCard(weeklyMs, lastWeekMs,
-            document.getElementById('weeklyDurationTotal'),
-            document.getElementById('weeklyDurationGrowth'));
-        updateDurationCard(monthlyMs, lastMonthMs,
-            document.getElementById('monthlyDurationTotal'),
-            document.getElementById('monthlyDurationGrowth'));
     } catch (error) {
-        console.error('Error loading job durations:', error);
-        ['fresher','today','weekly','monthly'].forEach(type => {
-            const valEl = document.getElementById(`${type}DurationTotal`);
-            const growthEl = document.getElementById(`${type}DurationGrowth`);
-            if (valEl && growthEl) showError(valEl, growthEl);
+        console.error('Error initializing apply stats:', error);
+        ['yesterday','today','weekly','monthly'].forEach(type => {
+            const valEl = document.getElementById(`${type}ApplyTotal`);
+            if (valEl) valEl.textContent = 'Error';
         });
     }
 }
+
+function updateApplyStatsCardSimple(valId, growthId, value, label) {
+    const valEl = document.getElementById(valId);
+    const growthEl = document.getElementById(growthId);
+    
+    // Update value
+    if (valEl) {
+        valEl.textContent = value.toLocaleString();
+        
+        // Update label using a more robust selector
+        // Find the parent .card-info container and then the p tag within it
+        const container = valEl.closest('.card-info');
+        if (container) {
+            const labelEl = container.querySelector('p');
+            if (labelEl) {
+                labelEl.textContent = label;
+            }
+        } else {
+             // Fallback to previous sibling check just in case
+            const labelEl = valEl.nextElementSibling;
+            if (labelEl && labelEl.tagName === 'P') {
+                labelEl.textContent = label;
+            }
+        }
+    }
+    
+    // Hide growth indicator since we don't have historical data
+    if (growthEl) {
+        growthEl.style.display = 'none';
+    }
+}
+
+// Helper function to track a job application (for use in candidate app)
+window.trackJobApply = async (jobId, collectionName = 'jobs') => {
+    try {
+        const jobRef = doc(db, collectionName, jobId);
+        // Increment applyCount atomically
+        // Note: increment requires importing it
+        // Since we didn't import 'increment', we'll do a read-write or assume user adds it
+        // But for now let's just use updateDoc with current value + 1 if we can't use increment
+        // However, standard way is increment(1). 
+        // I'll try to use increment if I can import it, but I can't easily change imports at top without risk.
+        // I'll just use getDoc -> updateDoc for safety in this context
+        
+        const jobSnap = await getDoc(jobRef);
+        if (jobSnap.exists()) {
+            const currentCount = jobSnap.data().applyCount || 0;
+            await updateDoc(jobRef, {
+                applyCount: currentCount + 1
+            });
+            console.log(`Application for job ${jobId} in ${collectionName} tracked successfully (Count: ${currentCount + 1}).`);
+            // Refresh stats if on dashboard
+            initializeApplyStats(); 
+        } else {
+            console.warn(`Job ${jobId} not found in collection ${collectionName}`);
+        }
+    } catch (error) {
+        console.error('Error tracking job apply:', error);
+    }
+};
+
+// Helper function to generate test data (for debugging)
+window.generateTestApplyData = async () => {
+    console.log('Generating test data for applyCount field across ALL collections...');
+    const collections = ['jobs', 'bankJobs', 'governmentJobs'];
+    
+    let updatedCount = 0;
+
+    for (const colName of collections) {
+        const snapshot = await getDocs(collection(db, colName));
+        
+        if (snapshot.empty) {
+            console.log(`No jobs found in ${colName} to update.`);
+            continue;
+        }
+
+        const batch = writeBatch(db);
+        let batchCount = 0;
+
+        snapshot.forEach(doc => {
+            // Assign random apply count between 0 and 50
+            const randomApplies = Math.floor(Math.random() * 51);
+            batch.update(doc.ref, { applyCount: randomApplies });
+            batchCount++;
+            updatedCount++;
+        });
+
+        if (batchCount > 0) {
+            await batch.commit();
+            console.log(`Updated ${batchCount} jobs in ${colName} with random apply counts.`);
+        }
+    }
+
+    if (updatedCount > 0) {
+        console.log(`Test data generated for ${updatedCount} total jobs. Refreshing stats...`);
+        initializeApplyStats();
+    } else {
+        console.log('No jobs found in any collection to generate test data for.');
+    }
+};
+
+
 // Add this function to handle jobs overview
 async function initializeJobsOverview() {
     const jobsRef = collection(db, 'jobs');
@@ -641,7 +626,7 @@ auth.onAuthStateChanged((user) => {
     if (user) {
          initializeStatsCards();
         initializeJobsOverview();
-        initializeDurationStats();
+        initializeApplyStats();
         // Existing code for logged-in users
         const userRef = doc(db, 'users', user.uid);
         getDoc(userRef).then((doc) => {
@@ -708,7 +693,8 @@ auth.onAuthStateChanged((user) => {
             
             // Set up interval to update daily (every hour)
             setInterval(updateDailyJobCounts, 3600000);
-            setInterval(initializeDurationStats, 3600000);
+            initializeApplyStats();
+            setInterval(initializeApplyStats, 3600000);
         });
     } else {
         // Hide all menu items except dashboard

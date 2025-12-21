@@ -377,7 +377,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 postedBy: user.uid,
                 createdAt: getIndianTimestamp(),
                 updatedAt: getIndianTimestamp(),
-                views: 0
+                views: 0,
+                applyCount: 0
             };
 
             // Add job to Firestore
@@ -734,7 +735,8 @@ async function uploadJobFromExcel(job, companyId, userId, jobsRef) {
         referralCode: job.referralCode || '',
         createdAt: getIndianTimestamp(),
         updatedAt: getIndianTimestamp(),
-        views: 0
+        views: 0,
+        applyCount: 0
     };
 
     await addDoc(jobsRef, jobData);

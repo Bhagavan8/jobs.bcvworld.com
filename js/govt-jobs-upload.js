@@ -30,7 +30,8 @@ uploadGovtJobForm.addEventListener('submit', async (e) => {
             notificationFile: document.getElementById('notificationFile').value,
             isActive: document.getElementById('isActive').value === 'true', // Convert string to boolean
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            applyCount: 0
         };
 
         await addDoc(collection(db, 'governmentJobs'), jobData);

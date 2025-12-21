@@ -34,7 +34,8 @@ uploadBankJobForm.addEventListener('submit', async (e) => {
             postedBy: user.uid,
             postedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-            isActive: true
+            isActive: true,
+            applyCount: 0
         };
 
         await addDoc(collection(db, 'bankJobs'), jobData);
