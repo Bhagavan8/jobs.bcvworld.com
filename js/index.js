@@ -166,13 +166,13 @@ function renderNotifications() {
     
     if (badgeEl) {
         badgeEl.textContent = unreadCount;
-        // Show badge only if unreadCount > 0
+        
+        // Force show if unreadCount > 0
         if (unreadCount > 0) {
+            badgeEl.style.setProperty('display', 'block', 'important');
             badgeEl.classList.remove('d-none');
-            badgeEl.style.display = 'block';
         } else {
-            badgeEl.classList.add('d-none');
-            badgeEl.style.display = 'none';
+            badgeEl.style.setProperty('display', 'none', 'important');
         }
         
         // Debug info in console
