@@ -275,6 +275,12 @@ function showError(cardElement, growthElement) {
 
 // Apply Stats
 async function initializeApplyStats() {
+    // Show loading state
+    ['yesterday', 'today', 'weekly', 'monthly'].forEach(type => {
+        const valEl = document.getElementById(`${type}ApplyTotal`);
+        if (valEl) valEl.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+    });
+
     try {
         const collections = ['jobs', 'bankJobs', 'governmentJobs'];
         let totalApplies = 0;
@@ -790,7 +796,13 @@ export function setupRoleBasedMenu(userRole) {
 
 
     async function updateDailyJobCounts() {
-        const now = new Date();
+    // Show loading state
+    ['todayJobsCount', 'yesterdayJobsCount', 'weeklyJobsCount'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+    });
+
+    const now = new Date();
         
         // Today's date (start of day)
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
