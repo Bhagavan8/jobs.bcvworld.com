@@ -132,8 +132,28 @@
 
                 <div class="top-nav-actions">
 
-                    <div class="notifications" id="notificationsDropdown">
-                        <!-- This will be dynamically updated by JavaScript -->
+                    <div class="dropdown me-3" id="notificationsDropdownContainer">
+                        <button class="btn position-relative p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell fs-4"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notificationBadge">
+                                0
+                            </span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                            <div class="card border-0">
+                                <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center sticky-top bg-white">
+                                    <h6 class="mb-0 fw-bold">Notifications</h6>
+                                    <button class="btn btn-link btn-sm text-decoration-none p-0" id="markAllReadBtn">Mark all read</button>
+                                </div>
+                                <div class="list-group list-group-flush" id="notificationsList">
+                                    <div class="text-center p-4">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="user-menu" id="userMenuDropdown">
                         <!-- This will be dynamically updated by JavaScript -->

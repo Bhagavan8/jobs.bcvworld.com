@@ -17,90 +17,193 @@ import {
     serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-const notificationsDropdown = document.getElementById('notificationsDropdown');
+const notificationsDropdown = document.getElementById('notificationsDropdownContainer');
 const userMenuDropdown = document.getElementById('userMenuDropdown');
+
+// Global state for notifications
+let windowNotificationSources = { user: [], suggestion: [], message: [], comment: [] };
+// Use a new key to reset state for the user and ensure they see notifications
+const NOTIF_STORAGE_KEY = 'lastNotificationReadTime_v3';
+let lastReadTimestamp = parseInt(localStorage.getItem(NOTIF_STORAGE_KEY) || '0');
+if (isNaN(lastReadTimestamp)) lastReadTimestamp = 0;
+
+// Helper to safely get date object
+function getSafeDate(timestamp) {
+    if (!timestamp) return new Date();
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+    }
+    // Handle string/number timestamps (e.g. from JSON or other sources)
+    return new Date(timestamp);
+}
 
 // Handle notifications
 function initializeNotifications() {
-    const notificationsRef = collection(db, 'notifications');
-    const notificationsQuery = query(
-        notificationsRef,
-        where('read', '==', false),
-        orderBy('timestamp', 'desc'),
-        limit(5)
-    );
-
-    onSnapshot(notificationsQuery, (snapshot) => {
-        const notifications = [];
-        snapshot.forEach((doc) => {
-            notifications.push({ id: doc.id, ...doc.data() });
-        });
-
-        updateNotificationsUI(notifications);
-    });
-}
-
-function updateNotificationsUI(notifications) {
-    const unreadCount = notifications.length;
+    const limits = 5;
     
-    notificationsDropdown.innerHTML = `
-        <div class="dropdown">
-            <button class="notification-btn" data-bs-toggle="dropdown">
-                <i class="bi bi-bell"></i>
-                ${unreadCount > 0 ? `<span class="badge">${unreadCount}</span>` : ''}
-            </button>
-            <div class="dropdown-menu dropdown-menu-end notifications-menu animate slideIn">
-                <div class="notifications-header">
-                    <h6 class="mb-0">Notifications</h6>
-                    ${unreadCount > 0 ? `<button class="btn btn-link btn-sm" onclick="markAllAsRead()">Mark all as read</button>` : ''}
-                </div>
-                <div class="notifications-list">
-                    ${notifications.length > 0 ? notifications.map(notification => `
-                        <div class="notification-item" data-id="${notification.id}">
-                            <div class="notification-icon ${notification.type}-icon">
-                                <i class="bi bi-${getNotificationIcon(notification.type)}"></i>
-                            </div>
-                            <div class="notification-content">
-                                <p class="notification-text">${notification.message}</p>
-                                <span class="notification-time">${formatTimestamp(notification.timestamp)}</span>
-                            </div>
-                            <button class="mark-read-btn" onclick="markAsRead('${notification.id}')">
-                                <i class="bi bi-check2"></i>
-                            </button>
-                        </div>
-                    `).join('') : `
-                        <div class="no-notifications">
-                            <i class="bi bi-bell-slash"></i>
-                            <p>No new notifications</p>
-                        </div>
-                    `}
-                </div>
-            </div>
-        </div>
-    `;
-}
+    // Listen to Users
+    onSnapshot(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(limits)), (snap) => {
+        updateGlobalNotifications('user', snap);
+    });
 
+    // Listen to Suggestions
+    onSnapshot(query(collection(db, 'suggestions'), orderBy('createdAt', 'desc'), limit(limits)), (snap) => {
+        updateGlobalNotifications('suggestion', snap);
+    });
 
-// Add this utility function
-function capitalizeFirstLetter(str) {
-    if (!str) return '';
-    if (str.length <= 5) {
-        return str.toUpperCase();
-    } else {
-        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    // Listen to Contact Messages
+    onSnapshot(query(collection(db, 'contact_messages'), orderBy('timestamp', 'desc'), limit(limits)), (snap) => {
+        updateGlobalNotifications('message', snap);
+    });
+
+    // Listen to Comments
+    onSnapshot(query(collection(db, 'comments'), orderBy('timestamp', 'desc'), limit(limits)), (snap) => {
+        updateGlobalNotifications('comment', snap);
+    });
+
+    // Handle "Mark all read" button click
+    const markReadBtn = document.getElementById('markAllReadBtn');
+    if (markReadBtn) {
+        // Remove old listener to avoid duplicates if re-initialized
+        const newBtn = markReadBtn.cloneNode(true);
+        markReadBtn.parentNode.replaceChild(newBtn, markReadBtn);
+        newBtn.addEventListener('click', markAllAsRead);
     }
 }
 
-// Utility functions
-function getNotificationIcon(type) {
-    const icons = {
-        job: 'briefcase',
-        news: 'newspaper',
-        profile: 'person',
-        comment: 'chat-dots',
-        default: 'bell'
-    };
-    return icons[type] || icons.default;
+function updateGlobalNotifications(type, snapshot) {
+    const items = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        // Use the raw timestamp, let renderNotifications handle conversion
+        let timestamp = data.createdAt || data.timestamp;
+
+        let message = '';
+        let title = '';
+        
+        if (type === 'user') {
+            title = 'New User';
+            message = `${data.displayName || data.email || 'A new user'} joined`;
+        } else if (type === 'suggestion') {
+            title = 'New Suggestion';
+            message = `${data.subject || 'Suggestion'} from ${data.name || 'Anonymous'}`;
+        } else if (type === 'message') {
+            title = 'New Message';
+            message = `${data.subject || 'Message'} from ${data.name || 'Anonymous'}`;
+        } else if (type === 'comment') {
+            title = 'New Comment';
+            message = `${data.userName || 'Someone'} commented on ${data.postTitle || 'a post'}`;
+        }
+
+        items.push({
+            id: doc.id,
+            type,
+            title,
+            message,
+            timestamp,
+            data
+        });
+    });
+    
+    windowNotificationSources[type] = items;
+    renderNotifications();
+}
+
+function renderNotifications() {
+    let allItems = [];
+    Object.values(windowNotificationSources).forEach(list => allItems.push(...list));
+    
+    // Sort by timestamp desc
+    allItems.sort((a, b) => {
+        const t1 = getSafeDate(a.timestamp);
+        const t2 = getSafeDate(b.timestamp);
+        return t2 - t1;
+    });
+    
+    // Limit to 10
+    allItems = allItems.slice(0, 10);
+    
+    const listEl = document.getElementById('notificationsList');
+    const badgeEl = document.getElementById('notificationBadge');
+    
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    let unreadCount = 0;
+    
+    if (allItems.length === 0) {
+        listEl.innerHTML = '<div class="p-3 text-center text-muted small">No notifications</div>';
+    } else {
+        allItems.forEach(item => {
+            const time = getSafeDate(item.timestamp);
+            const isUnread = time.getTime() > lastReadTimestamp;
+            if (isUnread) unreadCount++;
+            
+            const div = document.createElement('a');
+            div.href = '#';
+            div.className = `list-group-item list-group-item-action border-0 py-3 ${isUnread ? 'bg-light fw-bold' : ''}`;
+            div.innerHTML = `
+                <div class="d-flex align-items-start">
+                    <div class="me-3 mt-1">
+                        <span class="badge rounded-pill ${getBadgeClass(item.type)} p-2">
+                            <i class="bi ${getIconClass(item.type)}"></i>
+                        </span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 small fw-bold text-uppercase ${isUnread ? 'text-dark' : 'text-muted'}">${item.title}</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">${formatTimestamp(item.timestamp)}</small>
+                        </div>
+                        <p class="mb-0 small ${isUnread ? 'text-dark' : 'text-muted'}">${item.message}</p>
+                    </div>
+                    ${isUnread ? '<span class="ms-2 p-1 bg-danger border border-light rounded-circle"></span>' : ''}
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+    
+    if (badgeEl) {
+        badgeEl.textContent = unreadCount;
+        // Show badge only if unreadCount > 0
+        if (unreadCount > 0) {
+            badgeEl.classList.remove('d-none');
+            badgeEl.style.display = 'block';
+        } else {
+            badgeEl.classList.add('d-none');
+            badgeEl.style.display = 'none';
+        }
+        
+        // Debug info in console
+        console.log(`Notifications: ${allItems.length} total, ${unreadCount} unread. Last read: ${new Date(lastReadTimestamp).toLocaleString()}`);
+    }
+}
+
+function getBadgeClass(type) {
+    switch(type) {
+        case 'user': return 'bg-success';
+        case 'suggestion': return 'bg-info';
+        case 'message': return 'bg-warning';
+        case 'comment': return 'bg-primary';
+        default: return 'bg-secondary';
+    }
+}
+
+function getIconClass(type) {
+    switch(type) {
+        case 'user': return 'bi-person-plus';
+        case 'suggestion': return 'bi-lightbulb';
+        case 'message': return 'bi-envelope';
+        case 'comment': return 'bi-chat-dots';
+        default: return 'bi-bell';
+    }
+}
+
+function markAllAsRead() {
+    lastReadTimestamp = Date.now();
+    localStorage.setItem(NOTIF_STORAGE_KEY, lastReadTimestamp.toString());
+    renderNotifications();
 }
 
 function formatTimestamp(timestamp) {
@@ -117,30 +220,12 @@ function formatTimestamp(timestamp) {
     return 'Just now';
 }
 
-async function markAsRead(notificationId) {
-    try {
-        const notificationRef = doc(db, 'notifications', notificationId);
-        await updateDoc(notificationRef, { read: true });
-    } catch (error) {
-        console.error('Error marking notification as read:', error);
-    }
-}
-
-async function markAllAsRead() {
-    const notificationsRef = collection(db, 'notifications');
-    const unreadQuery = query(notificationsRef, where('read', '==', false));
-    
-    try {
-        const snapshot = await getDocs(unreadQuery);
-        const batch = writeBatch(db);
-        
-        snapshot.forEach((doc) => {
-            batch.update(doc.ref, { read: true });
-        });
-        
-        await batch.commit();
-    } catch (error) {
-        console.error('Error marking all notifications as read:', error);
+function capitalizeFirstLetter(str) {
+    if (!str) return '';
+    if (str.length <= 5) {
+        return str.toUpperCase();
+    } else {
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
     }
 }
 
@@ -631,67 +716,74 @@ auth.onAuthStateChanged((user) => {
     }
     
     if (user) {
-         initializeStatsCards();
-        initializeJobsOverview();
-        initializeApplyStats();
-        // Existing code for logged-in users
+         // Existing code for logged-in users
         const userRef = doc(db, 'users', user.uid);
         getDoc(userRef).then((doc) => {
             const userData = doc.data() || {};
             const firstName = capitalizeFirstLetter(userData.firstName || user.email.split('@')[0]);
             const profileImage = userData.profileImageUrl || user.profileImageUrl || '/images/default.webp';
             const userRole = userData.role || 'User';
+            
             setupRoleBasedMenu(userRole);
 
             // Update top navigation user menu
-            userMenuDropdown.innerHTML = `
-                <div class="dropdown">
-                    <button class="user-dropdown" data-bs-toggle="dropdown">
-                        <div class="user-avatar">
-                            <img src="${profileImage}" alt="${firstName}">
-                            <span class="status-indicator online"></span>
-                        </div>
-                        <div class="user-info">
-                            <span class="user-name">${firstName}</span>
-                        </div>
-                        <i class="bi bi-chevron-down"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end animate slideIn">
-                        <li class="dropdown-header">Welcome, ${firstName}!</li>
-                        <li><a class="dropdown-item" href="profile.html">
-                            <i class="bi bi-person-circle me-2"></i>My Profile
-                        </a></li>
-                        <li><a class="dropdown-item" href="settings.html">
-                            <i class="bi bi-gear me-2"></i>Settings
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" id="logoutBtn">
-                            <i class="bi bi-box-arrow-right me-2"></i>Sign Out
-                        </a></li>
-                    </ul>
-                </div>
-            `;
+            if (userMenuDropdown) {
+                userMenuDropdown.innerHTML = `
+                    <div class="dropdown">
+                        <button class="user-dropdown" data-bs-toggle="dropdown">
+                            <div class="user-avatar">
+                                <img src="${profileImage}" alt="${firstName}">
+                                <span class="status-indicator online"></span>
+                            </div>
+                            <div class="user-info">
+                                <span class="user-name">${firstName}</span>
+                            </div>
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end animate slideIn">
+                            <li class="dropdown-header">Welcome, ${firstName}!</li>
+                            <li><a class="dropdown-item" href="profile.html">
+                                <i class="bi bi-person-circle me-2"></i>My Profile
+                            </a></li>
+                            <li><a class="dropdown-item" href="settings.html">
+                                <i class="bi bi-gear me-2"></i>Settings
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" id="logoutBtn">
+                                <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                            </a></li>
+                        </ul>
+                    </div>
+                `;
+            }
 
             // Update sidebar footer
             const sidebarFooter = document.querySelector('.sidebar-footer');
-            sidebarFooter.innerHTML = `
-                <div class="user-profile">
-                    <img src="${profileImage}" alt="${firstName}" class="profile-img">
-                    <div class="profile-info">
-                        <h6 class="profile-name">${firstName}</h6>
-                        <span class="profile-role">${userRole}</span>
+            if (sidebarFooter) {
+                sidebarFooter.innerHTML = `
+                    <div class="user-profile">
+                        <img src="${profileImage}" alt="${firstName}" class="profile-img">
+                        <div class="profile-info">
+                            <h6 class="profile-name">${firstName}</h6>
+                            <span class="profile-role">${userRole}</span>
+                        </div>
                     </div>
-                </div>
-                
-            `;
+                `;
+            }
 
             // Add event listeners for both logout buttons
-            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeNotifications();
+            // Initialize features
+            if (userRole.toLowerCase() === 'admin') {
+                initializeNotifications();
+            } else {
+                 // Hide notifications for non-admin
+                 const notifContainer = document.getElementById('notificationsDropdownContainer');
+                 if (notifContainer) notifContainer.style.display = 'none';
+            }
+            
             initializeStatsCards();
             initializeJobsOverview();
             setupStatsListeners();
@@ -703,6 +795,7 @@ auth.onAuthStateChanged((user) => {
             initializeApplyStats();
             setInterval(initializeApplyStats, 3600000);
         });
+
     } else {
         // Hide all menu items except dashboard
         const adminEmployerContent = document.getElementById('adminEmployerContent');
@@ -715,7 +808,7 @@ auth.onAuthStateChanged((user) => {
 
         // Hide user profile and notifications
         const userMenuDropdown = document.getElementById('userMenuDropdown');
-        const notificationsDropdown = document.getElementById('notificationsDropdown');
+        const notificationsDropdown = document.getElementById('notificationsDropdownContainer');
         
         if (userMenuDropdown) userMenuDropdown.style.display = 'none';
         if (notificationsDropdown) notificationsDropdown.style.display = 'none';
