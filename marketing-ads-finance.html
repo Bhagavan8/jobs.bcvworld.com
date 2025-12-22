@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Ads Finance - Jobs Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .finance-card {
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        .finance-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .card-icon-bg {
+            position: absolute;
+            right: -10px;
+            bottom: -10px;
+            font-size: 5rem;
+            opacity: 0.1;
+            transform: rotate(-15deg);
+        }
+        .spend-card {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+        }
+        .diff-card {
+            background: linear-gradient(135deg, #2ec4b6 0%, #20a4f3 100%);
+            color: white;
+        }
+        .week-card {
+            background: linear-gradient(135deg, #ef476f 0%, #ff1053 100%);
+            color: white;
+        }
+        .today-card {
+            background: linear-gradient(135deg, #ffd166 0%, #fb8500 100%);
+            color: white;
+        }
+        .transaction-item {
+            transition: background-color 0.2s;
+            border-left: 4px solid #4361ee;
+        }
+        .transaction-item:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body class="admin-dashboard">
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-wrapper">
+                    <i class="bi bi-briefcase-fill logo-icon"></i>
+                    <h1 class="logo-text">Jobs<span> Admin</span></h1>
+                </div>
+                <button class="sidebar-toggle d-lg-none">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-menu">
+                <ul class="nav flex-column" id="sidebarMenu">
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+
+                    <!-- Admin & Employer Content -->
+                    <div id="adminEmployerContent" style="display: none;">
+                        <li class="nav-item">
+                            <a class="nav-link" href="upload-news.html">
+                                <i class="bi bi-newspaper"></i>
+                                <span>Upload News</span>
+                            </a>
+                        </li>
+
+                        <!-- Jobs Section -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse"
+                                data-bs-target="#jobs-collapse">
+                                <i class="bi bi-briefcase"></i>
+                                <span>Jobs</span>
+                                <i class="bi bi-chevron-down dropdown-arrow"></i>
+                            </a>
+                            <div class="collapse" id="jobs-collapse">
+                                <ul class="nav flex-column sub-menu" id="jobsSubmenu">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="jobs-upload.html">Private Jobs</a>
+                                    </li>
+                                    <!-- Admin Only Content -->
+                                    <div id="adminOnlyJobs" style="display: none;">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="govt-jobs-upload.html">Government Jobs</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="bank-jobs-upload.html">Banking Jobs</a>
+                                        </li>
+                                    </div>
+                                </ul>
+                            </div>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="profile-upload.html">
+                                <i class="bi bi-person-circle"></i>
+                                <span>Profile Upload</span>
+                            </a>
+                        </li>
+
+                        <!-- Admin Only Content -->
+                        <div id="adminOnlyContent" style="display: none;">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="marketing-ads-finance.html">
+                                    <i class="bi bi-megaphone"></i>
+                                    <span>Meta Ads Finance</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="affiliate-marketing.html">
+                                    <i class="bi bi-graph-up"></i>
+                                    <span>Affiliate Marketing</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="finance-tracking.html">
+                                    <i class="bi bi-wallet2"></i>
+                                    <span>Financial Tracking</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="comments.html">
+                                    <i class="bi bi-chat-dots"></i>
+                                    <span>Comments</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="messages.html">
+                                    <i class="bi bi-envelope-paper"></i>
+                                    <span>Messages & Suggestions</span>
+                                </a>
+                            </li>
+                        </div>
+                    </div>
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-container">
+                    <div class="user-profile">
+                        <img src="/images/default.webp" alt="User" class="profile-img">
+                        <div class="profile-info">
+                            <h6 class="profile-name" id="sidebarUserName">Loading...</h6>
+                            <span class="profile-role" id="sidebarUserRole">Admin</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggle d-lg-none me-3">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h4 class="page-title mb-0">Meta Ads Finance</h4>
+                </div>
+
+                <div class="top-nav-actions">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-menu" id="userMenuDropdown">
+                            <span class="d-none d-md-block fw-medium me-2" id="userName">Admin</span>
+                            <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                
+                <!-- Summary Cards -->
+                <div class="row g-4 mb-4">
+                    <!-- This Month -->
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card finance-card spend-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">This Month Spend</h6>
+                                <h2 class="card-title mb-0 fw-bold" id="thisMonthSpend">₹0.00</h2>
+                                <small class="opacity-75 d-block mt-1" id="monthLabel">Current Month</small>
+                                <i class="bi bi-calendar-month card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Last Month -->
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card finance-card h-100 bg-secondary text-white">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">Last Month Spend</h6>
+                                <h2 class="card-title mb-0 fw-bold" id="lastMonthSpend">₹0.00</h2>
+                                <small class="opacity-75 d-block mt-1" id="lastMonthLabel">Previous Month</small>
+                                <i class="bi bi-calendar-check card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Difference -->
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card finance-card diff-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">Month vs Last Month</h6>
+                                <h2 class="card-title mb-0 fw-bold" id="monthDiff">₹0.00</h2>
+                                <small class="opacity-75 d-block mt-1">Difference</small>
+                                <i class="bi bi-arrow-left-right card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- This Week -->
+                    <div class="col-12 col-md-6 col-lg-6">
+                        <div class="card finance-card week-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">This Week Spend</h6>
+                                <h2 class="card-title mb-0 fw-bold" id="thisWeekSpend">₹0.00</h2>
+                                <i class="bi bi-calendar-week card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Today -->
+                    <div class="col-12 col-md-6 col-lg-6">
+                        <div class="card finance-card today-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">Today Spend</h6>
+                                <h2 class="card-title mb-0 fw-bold" id="todaySpend">₹0.00</h2>
+                                <i class="bi bi-calendar-event card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Section -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom-0 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">Recent Transactions</h5>
+                        <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                            <i class="bi bi-plus-lg me-1"></i> Add Transaction
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="transactionsList">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="card-footer bg-white border-top-0 py-3">
+                         <div class="d-flex justify-content-between align-items-center" id="paginationControls" style="display: none;">
+                            <span class="text-muted small" id="pageInfo">Page 1 of 1</span>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary" id="prevBtn" disabled>Previous</button>
+                                <button class="btn btn-sm btn-outline-secondary" id="nextBtn" disabled>Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div class="modal fade" id="addTransactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Ad Spend</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="transactionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="trxAmount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="trxDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description / Campaign Name</label>
+                            <input type="text" class="form-control" id="trxDescription" placeholder="e.g. Summer Sale Campaign">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill">Save Transaction</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">
+                    Action successful
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/marketing-ads-finance.js"></script>
+    
+    <script>
+        // Simple Toast Function
+        function showToast(message, type = 'success') {
+            const toastEl = document.getElementById('liveToast');
+            const toastBody = document.getElementById('toastMessage');
+            
+            toastBody.textContent = message;
+            toastEl.className = `toast align-items-center text-white border-0 ${type === 'error' ? 'bg-danger' : 'bg-success'}`;
+            
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR'
+            }).format(amount);
+        }
+    </script>
+</body>
+</html>

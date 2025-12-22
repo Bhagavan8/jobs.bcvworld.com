@@ -88,6 +88,10 @@ body {
     display: none;
 }
 
+.top-nav .sidebar-toggle {
+    color: var(--dark-color);
+}
+
 .sidebar-menu {
     flex: 1;
     padding: 1.5rem 0;
