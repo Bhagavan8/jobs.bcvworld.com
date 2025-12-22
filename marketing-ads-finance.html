@@ -45,12 +45,86 @@
             background: linear-gradient(135deg, #ffd166 0%, #fb8500 100%);
             color: white;
         }
+        .total-card {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
         .transaction-item {
             transition: background-color 0.2s;
             border-left: 4px solid #4361ee;
         }
         .transaction-item:hover {
             background-color: #f8f9fa;
+        }
+        
+        /* Toggle Styles */
+        .top-toggle-bar {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: .5rem .75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .toggle-track {
+            position: relative;
+            height: 44px;
+            border-radius: 999px;
+            background: #0d6efd;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            gap: 4px;
+            overflow: hidden;
+            min-width: 280px;
+            max-width: 420px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .toggle-track .toggle-option {
+            flex: 1;
+            border: 0;
+            background: transparent;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 999px;
+            z-index: 1;
+            white-space: nowrap;
+            font-size: .95rem;
+            padding: 0.5rem 0.75rem;
+            text-align: center;
+            transition: color 0.2s;
+        }
+        .toggle-track .toggle-option.active {
+            color: #0d6efd;
+        }
+        .toggle-track .toggle-knob {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: calc(50% - 6px);
+            height: calc(100% - 8px);
+            border-radius: 999px;
+            background: #fff;
+            box-shadow: 0 6px 16px rgba(13,110,253,.35);
+            transition: left .25s ease;
+            z-index: 0;
+        }
+        .toggle-track.right-active .toggle-knob {
+            left: calc(50% + 2px);
+        }
+        .subscription-card {
+            border-left: 5px solid #0d6efd;
+            transition: transform 0.2s;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .subscription-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -73,7 +147,7 @@
                 <ul class="nav flex-column" id="sidebarMenu">
                     <!-- Dashboard -->
                     <li class="nav-item">
-                        <a class="nav-link" href="dashboard.html">
+                        <a class="nav-link" href="index.html">
                             <i class="bi bi-speedometer2"></i>
                             <span>Dashboard</span>
                         </a>
@@ -123,23 +197,28 @@
 
                         <!-- Admin Only Content -->
                         <div id="adminOnlyContent" style="display: none;">
-                            <li class="nav-item">
-                                <a class="nav-link active" href="marketing-ads-finance.html">
-                                    <i class="bi bi-megaphone"></i>
-                                    <span>Meta Ads Finance</span>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#finance-collapse">
+                                    <i class="bi bi-bank"></i>
+                                    <span>Finance</span>
+                                    <i class="bi bi-chevron-down dropdown-arrow"></i>
                                 </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="affiliate-marketing.html">
-                                    <i class="bi bi-graph-up"></i>
-                                    <span>Affiliate Marketing</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="finance-tracking.html">
-                                    <i class="bi bi-wallet2"></i>
-                                    <span>Financial Tracking</span>
-                                </a>
+                                <div class="collapse show" id="finance-collapse">
+                                    <ul class="nav flex-column sub-menu">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="total-finance.html">Total Overview</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link active" href="marketing-ads-finance.html">Meta Ads Finance</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="finance-tracking.html">Financial Tracking</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="affiliate-marketing.html">Affiliate Marketing</a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="comments.html">
@@ -196,11 +275,33 @@
 
             <!-- Content Wrapper -->
             <div class="content-wrapper">
+
+                <!-- Toggle Switcher -->
+                <div class="top-toggle-bar">
+                    <div class="toggle-track">
+                        <div class="toggle-knob"></div>
+                        <button class="toggle-option active" data-view="adspend">Ad Spend</button>
+                        <button class="toggle-option" data-view="recurring">Subscriptions & Auto Debit</button>
+                    </div>
+                </div>
                 
+                <div id="adSpendView">
                 <!-- Summary Cards -->
                 <div class="row g-4 mb-4">
+                    <!-- Total Spend -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="card finance-card total-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">Total Spend</h6>
+                                <h2 class="card-title mb-0 fw-bold" id="totalSpend">₹0.00</h2>
+                                <small class="opacity-75 d-block mt-1">All Time</small>
+                                <i class="bi bi-cash-stack card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- This Month -->
-                    <div class="col-12 col-md-6 col-lg-4">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card finance-card spend-card h-100">
                             <div class="card-body">
                                 <h6 class="card-subtitle mb-2 opacity-75">This Month Spend</h6>
@@ -212,7 +313,7 @@
                     </div>
 
                     <!-- Last Month -->
-                    <div class="col-12 col-md-6 col-lg-4">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card finance-card h-100 bg-secondary text-white">
                             <div class="card-body">
                                 <h6 class="card-subtitle mb-2 opacity-75">Last Month Spend</h6>
@@ -224,7 +325,7 @@
                     </div>
 
                     <!-- Difference -->
-                    <div class="col-12 col-md-6 col-lg-4">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card finance-card diff-card h-100">
                             <div class="card-body">
                                 <h6 class="card-subtitle mb-2 opacity-75">Month vs Last Month</h6>
@@ -286,7 +387,49 @@
                         </div>
                     </div>
                 </div>
+                </div> <!-- End adSpendView -->
 
+                <!-- Recurring View -->
+                <div id="recurringView" style="display: none;">
+                    <!-- Summary -->
+                     <div class="row g-4 mb-4">
+                        <div class="col-12 col-md-6">
+                            <div class="card finance-card h-100 bg-primary text-white">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 opacity-75">Monthly Recurring</h6>
+                                    <h2 class="card-title mb-0 fw-bold" id="monthlyRecurringTotal">₹0.00</h2>
+                                    <small class="opacity-75">Estimated monthly cost</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="card finance-card h-100 bg-info text-white">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 opacity-75">Yearly Recurring</h6>
+                                    <h2 class="card-title mb-0 fw-bold" id="yearlyRecurringTotal">₹0.00</h2>
+                                    <small class="opacity-75">Estimated yearly cost</small>
+                                </div>
+                            </div>
+                        </div>
+                     </div>
+
+                    <!-- Add Button -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">Active Subscriptions</h5>
+                        <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addSubscriptionModal">
+                            <i class="bi bi-plus-lg me-1"></i> Add Subscription
+                        </button>
+                    </div>
+
+                    <!-- List -->
+                    <div class="row g-3" id="subscriptionsList">
+                        <div class="col-12 text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
