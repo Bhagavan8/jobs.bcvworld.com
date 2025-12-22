@@ -21,6 +21,8 @@ let transactions = [];
 let loans = [];
 let investments = [];
 let recurringItems = [];
+let creditCards = [];
+let creditCardTransactions = [];
 let expenseChart = null;
 let __financeEventBound = false;
 let __financeSnapshotsBound = false;
@@ -28,6 +30,12 @@ let __submitting = { transaction: false, loan: false, investment: false, recurri
 let __processingRecurring = false;
 let __processingLoanEmi = false;
 let __processingSip = false;
+let __trxPage = 1;
+const __trxPageSize = 10;
+let __trxCurrentList = [];
+let __ccPage = 1;
+const __ccPageSize = 10;
+let __ccCurrentList = [];
 
 async function addUniqueRecord(uniqueKey, data) {
     try {
@@ -74,9 +82,12 @@ const categoryConfig = {
 document.addEventListener('DOMContentLoaded', () => {
     // Set default date to today
     document.getElementById('trxDate').valueAsDate = new Date();
+    const ccTxnDate = document.getElementById('ccTxnDate');
+    if (ccTxnDate) ccTxnDate.valueAsDate = new Date();
 
     // Sidebar Logic
     setupSidebar();
+    initTopToggle();
 
     // Form Submit
     if (!__financeEventBound) {
@@ -85,6 +96,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('loanForm').addEventListener('submit', handleLoanSubmit);
         document.getElementById('investmentForm').addEventListener('submit', handleInvestmentSubmit);
         document.getElementById('recurringForm').addEventListener('submit', handleRecurringSubmit);
+        const ccForm = document.getElementById('creditCardForm');
+    if (ccForm) ccForm.addEventListener('submit', handleCreditCardSubmit);
+        const ccTxnForm = document.getElementById('creditCardTransactionForm');
+        if (ccTxnForm) ccTxnForm.addEventListener('submit', handleCreditCardTransactionSubmit);
+        const ccFilterRadios = document.querySelectorAll('input[name="ccFilterType"]');
+        ccFilterRadios.forEach(r => r.addEventListener('change', () => { __ccPage = 1; renderCreditCardTransactions(creditCardTransactions); }));
+        const ccFilterCard = document.getElementById('ccFilterCard');
+        if (ccFilterCard) ccFilterCard.addEventListener('change', () => { __ccPage = 1; renderCreditCardTransactions(creditCardTransactions); });
+        const ccMetricsCardSelect = document.getElementById('ccMetricsCardSelect');
+        if (ccMetricsCardSelect) ccMetricsCardSelect.addEventListener('change', updateCreditCardSummary);
+        const ccPrev = document.getElementById('ccTransactionsPrevBtn');
+        const ccNext = document.getElementById('ccTransactionsNextBtn');
+        if (ccPrev) ccPrev.addEventListener('click', () => { if (__ccPage > 1) { __ccPage--; renderCreditCardTransactions(__ccCurrentList); } });
+        if (ccNext) ccNext.addEventListener('click', () => { const totalPages = Math.max(1, Math.ceil(__ccCurrentList.length / __ccPageSize)); if (__ccPage < totalPages) { __ccPage++; renderCreditCardTransactions(__ccCurrentList); } });
     }
 
     // Filter Logic
@@ -209,12 +234,31 @@ function updateUserInterface(userData, user) {
     }
 }
 
+function initTopToggle() {
+    const track = document.getElementById('topToggle');
+    if (!track) return;
+    const options = track.querySelectorAll('.toggle-option');
+    options.forEach(btn => {
+        btn.addEventListener('click', () => {
+            options.forEach(o => o.classList.remove('active'));
+            btn.classList.add('active');
+            const isCredit = btn.dataset.target === '#tabCreditCards';
+            track.classList.toggle('credit-active', isCredit);
+            const panes = document.querySelectorAll('.tab-pane');
+            panes.forEach(p => p.classList.remove('show', 'active'));
+            const pane = document.querySelector(btn.dataset.target);
+            if (pane) pane.classList.add('show', 'active');
+        });
+    });
+}
+
 function initializeFinance() {
     // 1. Transactions
     const qTrx = query(collection(db, 'financialRecords'), orderBy('date', 'desc'), orderBy('timestamp', 'desc'));
     onSnapshot(qTrx, (snapshot) => {
         transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateDashboard();
+        __trxPage = 1;
         renderTransactions(transactions);
         updateCharts();
     }, (error) => console.error("Error fetching transactions:", error));
@@ -247,6 +291,23 @@ function initializeFinance() {
         checkRecurringItems(); // Check for due recurring items
         updateDashboard(); // Update dashboard to reflect configured salary
     }, (error) => console.error("Error fetching recurring:", error));
+
+    // 5. Credit Cards (Separate tracking; does not affect balance cards)
+    const qCC = query(collection(db, 'financialCreditCards'), orderBy('createdAt', 'desc'));
+    onSnapshot(qCC, (snapshot) => {
+        creditCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderCreditCards(creditCards);
+        populateCcCardOptions(creditCards);
+        updateCreditCardSummary();
+    }, (error) => console.error("Error fetching credit cards:", error));
+    
+    const qCCT = query(collection(db, 'financialCreditCardTransactions'), orderBy('createdAt', 'desc'));
+    onSnapshot(qCCT, (snapshot) => {
+        creditCardTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderCreditCardTransactions(creditCardTransactions);
+        renderCreditCards(creditCards);
+        updateCreditCardSummary();
+    }, (error) => console.error("Error fetching credit card transactions:", error));
 }
 
 async function handleTransactionSubmit(e) {
@@ -675,6 +736,266 @@ async function processRecurringNow(id) {
     }
 }
 
+async function handleCreditCardSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+    const data = {
+        name: document.getElementById('ccName').value,
+        limit: parseFloat(document.getElementById('ccLimit').value),
+        spent: parseFloat(document.getElementById('ccSpent').value) || 0,
+        paid: parseFloat(document.getElementById('ccPaid').value) || 0,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser.uid
+    };
+
+    try {
+        await addDoc(collection(db, 'financialCreditCards'), data);
+        e.target.reset();
+        bootstrap.Modal.getInstance(document.getElementById('addCreditCardModal')).hide();
+        showToast('Credit card added');
+    } catch (error) {
+        console.error("Error adding credit card:", error);
+        showToast('Error saving credit card', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function handleCreditCardTransactionSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    const data = {
+        cardId: document.getElementById('ccTxnCard').value,
+        type: document.getElementById('ccTxnType').value,
+        amount: parseFloat(document.getElementById('ccTxnAmount').value),
+        date: document.getElementById('ccTxnDate').value,
+        description: document.getElementById('ccTxnDesc').value,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser.uid
+    };
+    try {
+        await addDoc(collection(db, 'financialCreditCardTransactions'), data);
+        e.target.reset();
+        document.getElementById('ccTxnDate').valueAsDate = new Date();
+        bootstrap.Modal.getInstance(document.getElementById('addCreditCardTransactionModal')).hide();
+        showToast('Credit card transaction added');
+    } catch (err) {
+        console.error("Error adding credit card transaction:", err);
+        showToast('Error saving transaction', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function updateCreditCardUsage(id, currentSpent, currentPaid) {
+    const spentStr = prompt("Enter new 'Spent (this cycle)' amount:", currentSpent ?? 0);
+    if (spentStr === null) return;
+    const paidStr = prompt("Enter new 'Paid (this cycle)' amount:", currentPaid ?? 0);
+    if (paidStr === null) return;
+    const spent = parseFloat(spentStr);
+    const paid = parseFloat(paidStr);
+    if (isNaN(spent) || isNaN(paid)) { alert('Invalid amounts'); return; }
+    try {
+        await updateDoc(doc(db, 'financialCreditCards', id), { spent, paid });
+        showToast('Credit card usage updated');
+    } catch (err) {
+        console.error(err);
+        showToast('Error updating card', 'error');
+    }
+}
+
+async function deleteCreditCard(id) {
+    if (!confirm('Delete this credit card?')) return;
+    try {
+        await deleteDoc(doc(db, 'financialCreditCards', id));
+        showToast('Credit card deleted');
+    } catch (err) {
+        console.error(err);
+        showToast('Error deleting card', 'error');
+    }
+}
+
+function renderCreditCards(list) {
+    const container = document.getElementById('creditCardsList');
+    if (!container) return;
+    if (list.length === 0) {
+        container.innerHTML = '<div class="text-center py-3 text-muted"><small>No credit cards added</small></div>';
+        return;
+    }
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    container.innerHTML = list.map(c => {
+        const txns = creditCardTransactions.filter(t => t.cardId === c.id);
+        const monthPurchases = txns.filter(t => t.type === 'purchase' && new Date(t.date) >= startOfMonth).reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        const monthPayments = txns.filter(t => t.type === 'payment' && new Date(t.date) >= startOfMonth).reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        const spent = (c.spent || 0) + monthPurchases;
+        const paid = (c.paid || 0) + monthPayments;
+        const used = Math.max(0, spent - paid);
+        const remaining = Math.max(0, (c.limit || 0) - used);
+        const usagePct = c.limit > 0 ? Math.min(100, (used / c.limit) * 100) : 0;
+        return `
+            <div class="list-group-item p-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-1 fw-bold"><i class="bi bi-credit-card-2-front me-2"></i>${c.name}</h6>
+                        <small class="text-muted">Limit: ${formatCurrency(c.limit || 0)}</small>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="updateCreditCardUsage('${c.id}', ${c.spent || 0}, ${c.paid || 0})">Update</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCreditCard('${c.id}')"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+                <div class="row g-2 small mb-2">
+                    <div class="col-6">
+                        <div class="text-muted">Spent</div>
+                        <div class="fw-bold text-danger">${formatCurrency(spent)}</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="text-muted">Paid</div>
+                        <div class="fw-bold text-success">${formatCurrency(paid)}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted">Used</div>
+                        <div class="fw-bold">${formatCurrency(used)}</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="text-muted">Remaining</div>
+                        <div class="fw-bold">${formatCurrency(remaining)}</div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Usage</span><span>${usagePct.toFixed(1)}%</span>
+                </div>
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar ${usagePct > 80 ? 'bg-danger' : 'bg-primary'}" role="progressbar" style="width: ${usagePct}%"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function populateCcCardOptions(cards) {
+    const select1 = document.getElementById('ccTxnCard');
+    const select2 = document.getElementById('ccFilterCard');
+    const select3 = document.getElementById('ccMetricsCardSelect');
+    const opts = cards.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (select1) {
+        const current = select1.value;
+        select1.innerHTML = '<option value="">Select card...</option>' + opts;
+        if (current) select1.value = current;
+    }
+    if (select2) {
+        const currentF = select2.value;
+        select2.innerHTML = '<option value="">All Cards</option>' + opts;
+        if (currentF) select2.value = currentF;
+    }
+    if (select3) {
+        const currentM = select3.value;
+        select3.innerHTML = '<option value="">All Cards</option>' + opts;
+        if (currentM) select3.value = currentM;
+    }
+}
+
+function renderCreditCardTransactions(list) {
+    const container = document.getElementById('creditCardTransactionsList');
+    if (!container) return;
+    const type = document.querySelector('input[name="ccFilterType"]:checked')?.value || 'all';
+    const cardFilter = document.getElementById('ccFilterCard')?.value || '';
+    let filtered = list.slice();
+    if (type !== 'all') filtered = filtered.filter(t => t.type === type);
+    if (cardFilter) filtered = filtered.filter(t => t.cardId === cardFilter);
+    __ccCurrentList = filtered;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / __ccPageSize));
+    const startIndex = (__ccPage - 1) * __ccPageSize;
+    const endIndex = startIndex + __ccPageSize;
+    const pageSlice = filtered.slice(startIndex, endIndex);
+    const pagEl = document.getElementById('ccTransactionsPagination');
+    const pageInfoEl = document.getElementById('ccTransactionsPageInfo');
+    if (pagEl) pagEl.style.display = filtered.length > __ccPageSize ? '' : 'none';
+    if (pageInfoEl) pageInfoEl.textContent = `Page ${Math.min(__ccPage, totalPages)} of ${totalPages}`;
+    const prevBtn = document.getElementById('ccTransactionsPrevBtn');
+    const nextBtn = document.getElementById('ccTransactionsNextBtn');
+    if (prevBtn) prevBtn.disabled = __ccPage <= 1;
+    if (nextBtn) nextBtn.disabled = __ccPage >= totalPages;
+    if (pageSlice.length === 0) {
+        container.innerHTML = '<div class="text-center py-3 text-muted"><small>No transactions</small></div>';
+        return;
+    }
+    container.innerHTML = pageSlice.map(t => {
+        const cardName = creditCards.find(c => c.id === t.cardId)?.name || '';
+        const isPay = t.type === 'payment';
+        return `
+            <div class="list-group-item transaction-item ${isPay ? 'type-income' : 'type-expense'} p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="category-icon me-3" style="background-color: ${isPay ? 'rgba(25,135,84,.1)' : 'rgba(220,53,69,.1)'};">
+                        <i class="bi ${isPay ? 'bi-bank' : 'bi-bag'}" style="color: ${isPay ? '#198754' : '#dc3545'}"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold">${isPay ? 'Payment' : 'Purchase'} • ${cardName}</div>
+                        <div class="text-muted small">${t.description || ''}</div>
+                        <div class="text-muted small">${t.date}</div>
+                    </div>
+                </div>
+                <div class="fw-bold ${isPay ? 'text-success' : 'text-danger'}">${formatCurrency(parseFloat(t.amount) || 0)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateCreditCardSummary() {
+    const sel = document.getElementById('ccMetricsCardSelect');
+    const cardId = sel ? sel.value : '';
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastMonthDateObj = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    const monthLabelText = `${today.toLocaleString(undefined, { month: 'long' })} ${today.getFullYear()}`;
+    const lastMonthLabelText = `${lastMonthDateObj.toLocaleString(undefined, { month: 'long' })} ${lastMonthDateObj.getFullYear()}`;
+    const txns = creditCardTransactions.filter(t => !cardId || t.cardId === cardId);
+    let daily = 0, weekly = 0, monthly = 0, lastMonth = 0;
+    txns.forEach(t => {
+        if (t.type !== 'purchase') return;
+        const amt = parseFloat(t.amount) || 0;
+        const d = new Date(t.date);
+        d.setHours(0,0,0,0);
+        if (d.getTime() === today.getTime()) daily += amt;
+        if (d >= startOfWeek) weekly += amt;
+        if (d >= startOfMonth) monthly += amt;
+        if (d >= startOfLastMonth && d <= endOfLastMonth) lastMonth += amt;
+    });
+    const diff = monthly - lastMonth;
+    const dailyEl = document.getElementById('ccDailySpent');
+    const weeklyEl = document.getElementById('ccWeeklySpent');
+    const monthlyEl = document.getElementById('ccMonthlySpent');
+    const lastMonthEl = document.getElementById('ccLastMonthSpent');
+    const diffEl = document.getElementById('ccSpentDiff');
+    const mLabelEl = document.getElementById('ccMonthlyLabel');
+    const lmLabelEl = document.getElementById('ccLastMonthLabel');
+    if (dailyEl) dailyEl.innerHTML = formatCurrency(daily);
+    if (weeklyEl) weeklyEl.innerHTML = formatCurrency(weekly);
+    if (monthlyEl) monthlyEl.innerHTML = formatCurrency(monthly);
+    if (lastMonthEl) lastMonthEl.innerHTML = formatCurrency(lastMonth);
+    if (diffEl) diffEl.innerHTML = formatCurrency(diff);
+    if (mLabelEl) mLabelEl.textContent = monthLabelText;
+    if (lmLabelEl) lmLabelEl.textContent = lastMonthLabelText;
+}
+
+window.updateCreditCardUsage = updateCreditCardUsage;
+window.deleteCreditCard = deleteCreditCard;
 async function updateInvestmentValue(id, currentVal) {
     const newVal = prompt("Enter new current value:", currentVal);
     if (newVal === null) return;
@@ -755,9 +1076,22 @@ function updateDashboard() {
     
     // Calculate start of month
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastMonthDateObj = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const monthLabelText = `${today.toLocaleString(undefined, { month: 'long' })} ${today.getFullYear()}`;
+    const lastMonthLabelText = `${lastMonthDateObj.toLocaleString(undefined, { month: 'long' })} ${lastMonthDateObj.getFullYear()}`;
 
     // Calculate from Transactions
     let totalPastEMI = 0; // Historical/Past EMIs that shouldn't affect current balance
+    let monthlyIncome = 0;
+    let monthlyRegularExp = 0;
+    let monthlyEmi = 0;
+    let monthlyInvestOutflowExp = 0;
+    let lastMonthIncome = 0;
+    let lastMonthExp = 0;
+    let lastMonthRegularExp = 0;
+    let lastMonthEmi = 0;
+    let lastMonthInvestOutflowExp = 0;
     
     transactions.forEach(t => {
         const amount = parseFloat(t.amount) || 0;
@@ -766,6 +1100,8 @@ function updateDashboard() {
 
         if (t.type === 'income') {
             totalIncome += amount;
+            if (tDate >= startOfMonth) monthlyIncome += amount;
+            if (tDate >= startOfLastMonth && tDate < startOfMonth) lastMonthIncome += amount;
         }
         else if (t.type === 'expense') {
             // Check if it's an EMI
@@ -774,6 +1110,8 @@ function updateDashboard() {
             
             if (isEMI) {
                 totalEMI += amount;
+                if (tDate >= startOfMonth) monthlyEmi += amount;
+                if (tDate >= startOfLastMonth && tDate < startOfMonth) lastMonthEmi += amount;
                 
                 // Identify if this is a "Past" EMI generated for history
                 // We ONLY exclude it from Balance if it's from a previous month.
@@ -783,6 +1121,8 @@ function updateDashboard() {
                 }
             } else {
                 totalExpense += amount; // Only regular spending
+                if (tDate >= startOfMonth) monthlyRegularExp += amount;
+                if (tDate >= startOfLastMonth && tDate < startOfMonth) lastMonthRegularExp += amount;
             }
             
             // Add to time-based stats (Include EMIs as they are expenses too)
@@ -794,6 +1134,14 @@ function updateDashboard() {
             }
             if (tDate >= startOfMonth) {
                 monthlyExp += amount;
+            }
+            if (tDate >= startOfLastMonth && tDate < startOfMonth) {
+                lastMonthExp += amount;
+            }
+            
+            if (t.category === 'investment') {
+                if (tDate >= startOfMonth) monthlyInvestOutflowExp += amount;
+                if (tDate >= startOfLastMonth && tDate < startOfMonth) lastMonthInvestOutflowExp += amount;
             }
         }
         else if (t.type === 'pending') {
@@ -865,6 +1213,26 @@ function updateDashboard() {
     if(document.getElementById('dailyExpense')) animateValue('dailyExpense', dailyExp);
     if(document.getElementById('weeklyExpense')) animateValue('weeklyExpense', weeklyExp);
     if(document.getElementById('monthlyExpense')) animateValue('monthlyExpense', monthlyExp);
+    const mLabelEl = document.getElementById('monthlyExpenseLabel');
+    if (mLabelEl) mLabelEl.textContent = monthLabelText;
+    
+    const thisMonthSaving = monthlyIncome - monthlyRegularExp - monthlyEmi - monthlyInvestOutflowExp;
+    const prevMonthSaving = lastMonthIncome - lastMonthRegularExp - lastMonthEmi - lastMonthInvestOutflowExp;
+    const savingDiff = thisMonthSaving - prevMonthSaving;
+    
+    if (document.getElementById('lastMonthExpense')) animateValue('lastMonthExpense', lastMonthExp);
+    const lmExpLabelEl = document.getElementById('lastMonthExpenseLabel');
+    if (lmExpLabelEl) lmExpLabelEl.textContent = lastMonthLabelText;
+    if (document.getElementById('lastMonthSaving')) animateValue('lastMonthSaving', prevMonthSaving);
+    const lmSavLabelEl = document.getElementById('lastMonthSavingLabel');
+    if (lmSavLabelEl) lmSavLabelEl.textContent = lastMonthLabelText;
+    const diffEl = document.getElementById('savingDiff');
+    if (diffEl) {
+        const positive = savingDiff >= 0;
+        diffEl.classList.toggle('text-success', positive);
+        diffEl.classList.toggle('text-danger', !positive);
+        diffEl.textContent = formatCurrency(savingDiff);
+    }
 
     // Update Progress Bars / Quick Stats
     
@@ -912,47 +1280,64 @@ function updateDashboard() {
 
 function renderTransactions(list) {
     const container = document.getElementById('transactionsList');
+    __trxCurrentList = list || [];
+    const total = __trxCurrentList.length;
+    const totalPages = Math.max(1, Math.ceil(total / __trxPageSize));
+    if (__trxPage > totalPages) __trxPage = totalPages;
+    const startIdx = (__trxPage - 1) * __trxPageSize;
+    const pageItems = __trxCurrentList.slice(startIdx, startIdx + __trxPageSize);
     
-    if (list.length === 0) {
+    if (pageItems.length === 0) {
         container.innerHTML = `
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-receipt display-4 opacity-25"></i>
                 <p class="mt-2">No transactions found</p>
             </div>
         `;
-        return;
-    }
-
-    container.innerHTML = list.map(t => {
-        const config = categoryConfig[t.category] || categoryConfig['other'];
-        const isPositive = t.type === 'income';
-        const amountClass = isPositive ? 'text-success' : 'text-danger';
-        const sign = isPositive ? '+' : '-';
-        
-        return `
-            <div class="list-group-item transaction-item type-${t.type} p-3 border-bottom">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="category-icon" style="background-color: ${config.color}20; color: ${config.color}">
-                            <i class="bi ${config.icon}"></i>
+    } else {
+        container.innerHTML = pageItems.map(t => {
+            const config = categoryConfig[t.category] || categoryConfig['other'];
+            const isPositive = t.type === 'income';
+            const amountClass = isPositive ? 'text-success' : 'text-danger';
+            const sign = isPositive ? '+' : '-';
+            
+            return `
+                <div class="list-group-item transaction-item type-${t.type} p-3 border-bottom">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="category-icon" style="background-color: ${config.color}20; color: ${config.color}">
+                                <i class="bi ${config.icon}"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-capitalize">${t.description || t.category}</h6>
+                                <small class="text-muted">
+                                    ${new Date(t.date).toLocaleDateString()} • <span class="badge bg-light text-dark border">${t.type}</span>
+                                </small>
+                            </div>
                         </div>
-                        <div>
-                            <h6 class="mb-0 fw-bold text-capitalize">${t.description || t.category}</h6>
-                            <small class="text-muted">
-                                ${new Date(t.date).toLocaleDateString()} • <span class="badge bg-light text-dark border">${t.type}</span>
-                            </small>
+                        <div class="text-end">
+                            <h6 class="mb-0 fw-bold ${amountClass}">${sign}${formatCurrency(t.amount)}</h6>
+                            <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" onclick="deleteTransaction('${t.id}')">
+                                <small>Delete</small>
+                            </button>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        <h6 class="mb-0 fw-bold ${amountClass}">${sign}${formatCurrency(t.amount)}</h6>
-                        <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" onclick="deleteTransaction('${t.id}')">
-                            <small>Delete</small>
-                        </button>
                     </div>
                 </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    }
+    const pagEl = document.getElementById('transactionsPagination');
+    const infoEl = document.getElementById('transactionsPageInfo');
+    const prevBtn = document.getElementById('transactionsPrevBtn');
+    const nextBtn = document.getElementById('transactionsNextBtn');
+    if (pagEl && infoEl && prevBtn && nextBtn) {
+        pagEl.style.display = total > __trxPageSize ? 'flex' : 'none';
+        infoEl.textContent = `Page ${__trxPage} of ${totalPages}`;
+        prevBtn.disabled = __trxPage <= 1;
+        nextBtn.disabled = __trxPage >= totalPages;
+        prevBtn.onclick = () => { if (__trxPage > 1) { __trxPage--; renderTransactions(__trxCurrentList); } };
+        nextBtn.onclick = () => { if (__trxPage < totalPages) { __trxPage++; renderTransactions(__trxCurrentList); } };
+    }
 }
 
 function renderLoans(list) {
@@ -1402,6 +1787,7 @@ async function checkInvestmentInterest() {
 
 function filterTransactions(type) {
     if (type === 'all') {
+        __trxPage = 1;
         renderTransactions(transactions);
     } else if (type === 'loan') {
         // Show explicit loan types AND expenses categorized as loan
@@ -1409,15 +1795,18 @@ function filterTransactions(type) {
             t.type === 'loan' || 
             (t.type === 'expense' && t.category === 'loan')
         );
+        __trxPage = 1;
         renderTransactions(filtered);
     } else if (type === 'expense') {
         // Show only expenses that are NOT loans (exclude legacy loan-expenses)
         const filtered = transactions.filter(t => 
             t.type === 'expense' && t.category !== 'loan'
         );
+        __trxPage = 1;
         renderTransactions(filtered);
     } else {
         const filtered = transactions.filter(t => t.type === type);
+        __trxPage = 1;
         renderTransactions(filtered);
     }
 }
