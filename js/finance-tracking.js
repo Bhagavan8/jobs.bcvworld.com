@@ -2,12 +2,14 @@ import { auth, db } from './firebase-config.js';
 import { 
     collection, 
     addDoc, 
+    setDoc,
     query, 
     orderBy, 
     onSnapshot, 
     doc, 
     deleteDoc,
     getDoc,
+    getDocs,
     updateDoc,
     serverTimestamp,
     where
@@ -20,7 +22,42 @@ let loans = [];
 let investments = [];
 let recurringItems = [];
 let expenseChart = null;
+let __financeEventBound = false;
+let __financeSnapshotsBound = false;
+let __submitting = { transaction: false, loan: false, investment: false, recurring: false };
+let __processingRecurring = false;
+let __processingLoanEmi = false;
+let __processingSip = false;
 
+async function addUniqueRecord(uniqueKey, data) {
+    try {
+        await setDoc(doc(collection(db, 'financialRecords'), uniqueKey), data);
+        return true;
+    } catch (e) {
+        console.error('Unique record write failed', e);
+        return false;
+    }
+}
+
+async function cleanupDuplicateRecords(matchField, matchValue, period, keepId) {
+    try {
+        const q = query(
+            collection(db, 'financialRecords'),
+            where(matchField, '==', matchValue),
+            where('period', '==', period)
+        );
+        const snap = await getDocs(q);
+        const deletions = [];
+        snap.forEach(d => {
+            if (d.id !== keepId) {
+                deletions.push(deleteDoc(doc(db, 'financialRecords', d.id)));
+            }
+        });
+        if (deletions.length) await Promise.all(deletions);
+    } catch (e) {
+        console.error('Cleanup duplicates failed', e);
+    }
+}
 // Categories config for icons/colors
 const categoryConfig = {
     salary: { icon: 'bi-cash-coin', color: '#2ec4b6' },
@@ -42,10 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSidebar();
 
     // Form Submit
-    document.getElementById('transactionForm').addEventListener('submit', handleTransactionSubmit);
-    document.getElementById('loanForm').addEventListener('submit', handleLoanSubmit);
-    document.getElementById('investmentForm').addEventListener('submit', handleInvestmentSubmit);
-    document.getElementById('recurringForm').addEventListener('submit', handleRecurringSubmit);
+    if (!__financeEventBound) {
+        __financeEventBound = true;
+        document.getElementById('transactionForm').addEventListener('submit', handleTransactionSubmit);
+        document.getElementById('loanForm').addEventListener('submit', handleLoanSubmit);
+        document.getElementById('investmentForm').addEventListener('submit', handleInvestmentSubmit);
+        document.getElementById('recurringForm').addEventListener('submit', handleRecurringSubmit);
+    }
 
     // Filter Logic
     document.querySelectorAll('input[name="filterType"]').forEach(radio => {
@@ -76,7 +116,10 @@ onAuthStateChanged(auth, async (user) => {
 
     currentUser = user;
     updateUserInterface(userDoc.data(), user);
-    initializeFinance();
+    if (!__financeSnapshotsBound) {
+        __financeSnapshotsBound = true;
+        initializeFinance();
+    }
 });
 
 function setupSidebar() {
@@ -130,6 +173,40 @@ function updateUserInterface(userData, user) {
     if (adminEmployerContent) adminEmployerContent.style.display = 'block';
     if (adminOnlyContent) adminOnlyContent.style.display = 'block';
     if (adminOnlyJobs) adminOnlyJobs.style.display = 'block';
+
+    // Update top navigation user menu (consistent with index page)
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    if (userMenuDropdown) {
+        userMenuDropdown.innerHTML = `
+            <div class="dropdown">
+                <button class="user-dropdown" data-bs-toggle="dropdown">
+                    <div class="user-avatar">
+                        <img src="${profileImage}" alt="${firstName}">
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">${firstName}</span>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end animate slideIn">
+                    <li class="dropdown-header">Welcome, ${firstName}!</li>
+                    <li><a class="dropdown-item" href="profile.html">
+                        <i class="bi bi-person-circle me-2"></i>My Profile
+                    </a></li>
+                    <li><a class="dropdown-item" href="settings.html">
+                        <i class="bi bi-gear me-2"></i>Settings
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="logoutBtn">
+                        <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                    </a></li>
+                </ul>
+            </div>
+        `;
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    }
 }
 
 function initializeFinance() {
@@ -174,6 +251,8 @@ function initializeFinance() {
 
 async function handleTransactionSubmit(e) {
     e.preventDefault();
+    if (__submitting.transaction) return;
+    __submitting.transaction = true;
     
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
@@ -206,11 +285,14 @@ async function handleTransactionSubmit(e) {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+        __submitting.transaction = false;
     }
 }
 
 async function handleLoanSubmit(e) {
     e.preventDefault();
+    if (__submitting.loan) return;
+    __submitting.loan = true;
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -369,6 +451,7 @@ async function handleLoanSubmit(e) {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+        __submitting.loan = false;
     }
 }
 
@@ -396,6 +479,8 @@ function toggleInvFields() {
 
 async function handleInvestmentSubmit(e) {
     e.preventDefault();
+    if (__submitting.investment) return;
+    __submitting.investment = true;
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -448,22 +533,29 @@ async function handleInvestmentSubmit(e) {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+        __submitting.investment = false;
     }
 }
 
 async function handleRecurringSubmit(e) {
     e.preventDefault();
+    if (__submitting.recurring) return;
+    __submitting.recurring = true;
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+    const shouldAddNow = document.getElementById('recAddNow').checked;
+    const todayInit = new Date();
+    const currentPeriodInit = `${todayInit.getFullYear()}-${todayInit.getMonth()}`;
 
     const data = {
         name: document.getElementById('recName').value,
         type: document.getElementById('recType').value,
         amount: parseFloat(document.getElementById('recAmount').value),
         day: parseInt(document.getElementById('recDay').value),
-        lastProcessedMonth: null, // YYYY-MM
+        lastProcessedMonth: shouldAddNow ? currentPeriodInit : null,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
         active: true
@@ -472,15 +564,14 @@ async function handleRecurringSubmit(e) {
     try {
         const docRef = await addDoc(collection(db, 'financialRecurring'), data);
         e.target.reset();
-        
-        // Check checkbox
-        const shouldAddNow = document.getElementById('recAddNow').checked;
-        
+
         if (shouldAddNow) {
             const today = new Date();
             const currentPeriod = `${today.getFullYear()}-${today.getMonth()}`;
-            
-            await addDoc(collection(db, 'financialRecords'), {
+
+            // Idempotency: skip if already added for this period
+            const uniqueKey = `rec_${docRef.id}_${currentPeriod}`;
+            await addUniqueRecord(uniqueKey, {
                 type: data.type,
                 amount: data.amount,
                 category: data.type === 'income' ? 'salary' : 'utilities',
@@ -488,12 +579,11 @@ async function handleRecurringSubmit(e) {
                 description: `Auto-Recurring: ${data.name} (Initial)`,
                 timestamp: serverTimestamp(),
                 createdBy: currentUser.uid,
-                isRecurring: true
+                isRecurring: true,
+                recurringId: docRef.id,
+                period: currentPeriod
             });
-
-            await updateDoc(doc(db, 'financialRecurring', docRef.id), {
-                lastProcessedMonth: currentPeriod
-            });
+            await cleanupDuplicateRecords('recurringId', docRef.id, currentPeriod, uniqueKey);
             showToast('Recurring setup & added for this month');
         } else {
             showToast('Recurring item set up successfully');
@@ -508,6 +598,7 @@ async function handleRecurringSubmit(e) {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+        __submitting.recurring = false;
     }
 }
 
@@ -557,7 +648,9 @@ async function processRecurringNow(id) {
     const currentPeriod = `${today.getFullYear()}-${today.getMonth()}`;
     
     try {
-        await addDoc(collection(db, 'financialRecords'), {
+        // Idempotency: skip if already added for this period
+        const uniqueKey = `rec_${item.id}_${currentPeriod}`;
+        await addUniqueRecord(uniqueKey, {
             type: item.type,
             amount: item.amount,
             category: item.type === 'income' ? 'salary' : 'utilities',
@@ -565,8 +658,11 @@ async function processRecurringNow(id) {
             description: `Auto-Recurring: ${item.name} (Manual)`,
             timestamp: serverTimestamp(),
             createdBy: currentUser.uid,
-            isRecurring: true
+            isRecurring: true,
+            recurringId: item.id,
+            period: currentPeriod
         });
+        await cleanupDuplicateRecords('recurringId', item.id, currentPeriod, uniqueKey);
 
         await updateDoc(doc(db, 'financialRecurring', item.id), {
             lastProcessedMonth: currentPeriod
@@ -1059,6 +1155,8 @@ function renderRecurring(list) {
 }
 
 async function checkLoanEMIs() {
+    if (__processingLoanEmi) return;
+    __processingLoanEmi = true;
     const today = new Date();
     const currentDay = today.getDate();
     const currentMonth = today.getMonth(); // 0-11
@@ -1086,8 +1184,8 @@ async function checkLoanEMIs() {
         if (currentDay >= loan.emiDate && loan.lastEmiPaidMonth !== currentPeriod) {
             // Process EMI
             try {
-                // 1. Add Transaction
-                await addDoc(collection(db, 'financialRecords'), {
+                const uniqueKey = `emi_${loan.id}_${currentPeriod}`;
+                await addUniqueRecord(uniqueKey, {
                     type: 'expense',
                     amount: loan.emiAmount,
                     category: 'loan',
@@ -1095,8 +1193,11 @@ async function checkLoanEMIs() {
                     description: `Auto-EMI: ${loan.name}`,
                     timestamp: serverTimestamp(),
                     createdBy: currentUser.uid,
-                    isAutoEmi: true
+                    isAutoEmi: true,
+                    loanId: loan.id,
+                    period: currentPeriod
                 });
+                await cleanupDuplicateRecords('loanId', loan.id, currentPeriod, uniqueKey);
 
                 // 2. Update Loan with Interest Logic
                 const annualRate = loan.interestRate || 0;
@@ -1127,9 +1228,12 @@ async function checkLoanEMIs() {
             }
         }
     }
+    __processingLoanEmi = false;
 }
 
 async function checkRecurringItems() {
+    if (__processingRecurring) return;
+    __processingRecurring = true;
     const today = new Date();
     const currentDay = today.getDate();
     const currentMonth = today.getMonth(); // 0-11
@@ -1145,17 +1249,20 @@ async function checkRecurringItems() {
         
         if (currentDay >= item.day && item.lastProcessedMonth !== currentPeriod) {
             try {
-                // Add Transaction
-                await addDoc(collection(db, 'financialRecords'), {
+                const uniqueKey = `rec_${item.id}_${currentPeriod}`;
+                await addUniqueRecord(uniqueKey, {
                     type: item.type,
                     amount: item.amount,
-                    category: item.type === 'income' ? 'salary' : 'utilities', // Default categories
+                    category: item.type === 'income' ? 'salary' : 'utilities',
                     date: today.toISOString().split('T')[0],
                     description: `Auto-Recurring: ${item.name}`,
                     timestamp: serverTimestamp(),
                     createdBy: currentUser.uid,
-                    isRecurring: true
+                    isRecurring: true,
+                    recurringId: item.id,
+                    period: currentPeriod
                 });
+                await cleanupDuplicateRecords('recurringId', item.id, currentPeriod, uniqueKey);
 
                 // Update Item
                 await updateDoc(doc(db, 'financialRecurring', item.id), {
@@ -1168,9 +1275,12 @@ async function checkRecurringItems() {
             }
         }
     }
+    __processingRecurring = false;
 }
 
 async function checkInvestmentSIPs() {
+    if (__processingSip) return;
+    __processingSip = true;
     const today = new Date();
     const currentDay = today.getDate();
     const currentMonth = today.getMonth();
@@ -1193,8 +1303,8 @@ async function checkInvestmentSIPs() {
         
         if (currentDay >= sipDay && inv.lastSipPaidMonth !== currentPeriod) {
             try {
-                // 1. Add Transaction (Expense -> Investment)
-                await addDoc(collection(db, 'financialRecords'), {
+                const uniqueKey = `sip_${inv.id}_${currentPeriod}`;
+                await addUniqueRecord(uniqueKey, {
                     type: 'expense',
                     amount: inv.sipAmount,
                     category: 'investment',
@@ -1202,8 +1312,11 @@ async function checkInvestmentSIPs() {
                     description: `Auto-SIP: ${inv.name}`,
                     timestamp: serverTimestamp(),
                     createdBy: currentUser.uid,
-                    isAutoSip: true
+                    isAutoSip: true,
+                    investmentId: inv.id,
+                    period: currentPeriod
                 });
+                await cleanupDuplicateRecords('investmentId', inv.id, currentPeriod, uniqueKey);
 
                 // 2. Update Investment
                 // Assume 1:1 growth for cash injection (Amount + SIP, Current + SIP)
@@ -1223,6 +1336,7 @@ async function checkInvestmentSIPs() {
             }
         }
     }
+    __processingSip = false;
 }
 
 async function checkInvestmentInterest() {

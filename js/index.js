@@ -1061,3 +1061,50 @@ export function setupRoleBasedMenu(userRole) {
     // Set up interval to update daily (every hour)
     setInterval(updateDailyJobCounts, 3600000);
     
+
+// Sidebar Toggle Logic for Mobile
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggles = document.querySelectorAll('.sidebar-toggle');
+    
+    // Only proceed if sidebar exists
+    if (!sidebar) return;
+
+    // Create overlay if it doesn't exist
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+    }
+
+    sidebarToggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+    });
+
+    // Close sidebar when clicking overlay
+    overlay.addEventListener('click', () => {
+        if (sidebar.classList.contains('active')) {
+            toggleSidebar();
+        }
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth < 992 && 
+            sidebar.classList.contains('active') && 
+            !sidebar.contains(e.target) && 
+            !e.target.closest('.sidebar-toggle')) {
+            toggleSidebar();
+        }
+    });
+});
