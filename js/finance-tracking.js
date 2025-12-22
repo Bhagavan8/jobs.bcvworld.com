@@ -31,10 +31,10 @@ let __processingRecurring = false;
 let __processingLoanEmi = false;
 let __processingSip = false;
 let __trxPage = 1;
-const __trxPageSize = 10;
+const __trxPageSize = 5;
 let __trxCurrentList = [];
 let __ccPage = 1;
-const __ccPageSize = 10;
+const __ccPageSize = 5;
 let __ccCurrentList = [];
 
 async function addUniqueRecord(uniqueKey, data) {
