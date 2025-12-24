@@ -4,6 +4,7 @@ import {
     query,
     orderBy,
     getDocs,
+    getCountFromServer,
     getDoc,
     doc,
     deleteDoc,
@@ -29,6 +30,7 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('userName').textContent = displayName;
 
         loadTables(); 
+        updateCommentsBadge();
     }
 });
 
@@ -42,8 +44,8 @@ window.addEventListener('error', (event) => {
 });
 
 function isAdmin() {
-    const userRole = localStorage.getItem('userRole');
-    return userRole === 'Admin';
+    const userRole = localStorage.getItem('userRole') || '';
+    return userRole.toLowerCase() === 'admin';
 }
 
 
@@ -96,6 +98,19 @@ async function loadTables() {
     }
 }
 
+async function updateCommentsBadge() {
+    try {
+        const badge = document.querySelector('.sidebar .nav-link[href="comments.html"] .badge');
+        if (!badge) return;
+        const coll = collection(db, 'jobComments');
+        const countSnap = await getCountFromServer(coll);
+        const count = countSnap.data().count || 0;
+        badge.textContent = String(count);
+    } catch (e) {
+        const badge = document.querySelector('.sidebar .nav-link[href="comments.html"] .badge');
+        if (badge) badge.textContent = '0';
+    }
+}
 function updateTable(type, docs, tableBody, paginationElement) {
     const totalPages = Math.ceil(docs.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage[type] - 1) * ITEMS_PER_PAGE;
