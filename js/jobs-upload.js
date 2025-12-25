@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 skills: "Skills",
                 description: "Job Description",
                 qualifications: "Desired Qualifications",
+                walkinDetails: "Walk-in Details",
                 applicationMethod: "Application Method",
                 applicationLink: "Application Link",
                 location: "Location",
@@ -224,6 +225,106 @@ document.addEventListener('DOMContentLoaded', function () {
         validateField(field);
     });
 
+    // --- Education Level Checkbox Logic ---
+    const educationCheckboxes = document.querySelectorAll('.education-checkbox');
+    const educationBtn = document.getElementById('educationLevelBtn');
+    const educationInput = document.getElementById('educationLevel');
+
+    function updateEducationDropdown() {
+        const selected = Array.from(educationCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        
+        educationInput.value = selected.join(', ');
+        
+        if (selected.length === 0) {
+            educationBtn.textContent = 'Select Education Level';
+        } else if (selected.length <= 2) {
+            educationBtn.textContent = selected.join(', ');
+        } else {
+            educationBtn.textContent = `${selected.length} Selected`;
+        }
+        
+        // Trigger validation
+        validateField(educationInput);
+        
+        // Visual feedback on button
+        if (educationInput.classList.contains('is-invalid')) {
+            educationBtn.classList.add('is-invalid', 'border-danger');
+            educationBtn.classList.remove('is-valid');
+        } else if (educationInput.classList.contains('is-valid')) {
+            educationBtn.classList.remove('is-invalid', 'border-danger');
+            educationBtn.classList.add('is-valid');
+        } else {
+            educationBtn.classList.remove('is-invalid', 'border-danger', 'is-valid');
+        }
+    }
+
+    educationCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateEducationDropdown);
+    });
+
+    document.getElementById('clearEducationBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        educationCheckboxes.forEach(cb => cb.checked = false);
+        updateEducationDropdown();
+    });
+
+    // Initialize
+    if (educationCheckboxes.length > 0) updateEducationDropdown();
+    // --------------------------------------
+
+    // --- Location Checkbox Logic ---
+    const locationCheckboxes = document.querySelectorAll('.location-checkbox');
+    const locationBtn = document.getElementById('locationBtn');
+    const locationInput = document.getElementById('location');
+
+    function updateLocationDropdown() {
+        const selected = Array.from(locationCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
+        locationInput.value = selected.join(', ');
+
+        if (selected.length === 0) {
+            locationBtn.textContent = 'Select Location';
+        } else if (selected.length <= 2) {
+            locationBtn.textContent = selected.join(', ');
+        } else {
+            locationBtn.textContent = `${selected.length} Selected`;
+        }
+
+        // Trigger validation
+        validateField(locationInput);
+
+        // Visual feedback on button
+        if (locationInput.classList.contains('is-invalid')) {
+            locationBtn.classList.add('is-invalid', 'border-danger');
+            locationBtn.classList.remove('is-valid');
+        } else if (locationInput.classList.contains('is-valid')) {
+            locationBtn.classList.remove('is-invalid', 'border-danger');
+            locationBtn.classList.add('is-valid');
+        } else {
+            locationBtn.classList.remove('is-invalid', 'border-danger', 'is-valid');
+        }
+    }
+
+    locationCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateLocationDropdown);
+    });
+
+    document.getElementById('clearLocationBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        locationCheckboxes.forEach(cb => cb.checked = false);
+        updateLocationDropdown();
+    });
+
+    // Initialize
+    if (locationCheckboxes.length > 0) updateLocationDropdown();
+    // --------------------------------------
+
     // Handle company search
     document.getElementById('searchCompanyBtn').addEventListener('click', async () => {
         const companyName = document.getElementById('companyName').value.trim();
@@ -366,6 +467,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 skills: document.getElementById('skills').value.split(',').map(skill => skill.trim()),
                 description: document.getElementById('description').value,
                 qualifications: document.getElementById('qualifications').value.split('\n').filter(qual => qual.trim()),
+                walkinDetails: document.getElementById('walkinDetails').value || null,
                 salary: document.getElementById('salary').value || null,
                 lastDate: document.getElementById('lastDate').value || null,
                 companyId: companyId,
@@ -724,6 +826,7 @@ async function uploadJobFromExcel(job, companyId, userId, jobsRef) {
         skills: job.skills.split(',').map(skill => skill.trim()),
         description: job.description,
         qualifications: job.qualifications.split('\n').filter(qual => qual.trim()),
+        walkinDetails: job.walkinDetails || null,
         salary: job.salary || null,
         lastDate: job.lastDate || null,
         companyId: companyId,
