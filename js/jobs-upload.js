@@ -1,5 +1,5 @@
 
-import {  collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import {  collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { db, storage, auth, ref, uploadBytes, getDownloadURL } from './firebase-config.js';
 
 /// Move console.log inside DOMContentLoaded to ensure it runs after imports are resolved
@@ -171,8 +171,131 @@ function validateSection(sectionId) {
     return isValid;
 }
 
+let isEditMode = false;
+let editJobId = null;
+
+async function checkEditMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    const edit = urlParams.get('edit');
+
+    if (id && edit === 'true') {
+        isEditMode = true;
+        editJobId = id;
+        const pageTitle = document.querySelector('h2.mb-4');
+        if(pageTitle) pageTitle.textContent = 'Edit Job';
+        const submitBtn = document.getElementById('submitBtn');
+        if(submitBtn) submitBtn.innerHTML = 'Update Job <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>';
+        await loadJobData(id);
+    }
+}
+
+async function loadJobData(id) {
+    try {
+        const docRef = doc(db, 'jobs', id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            
+            const fields = ['jobTitle', 'jobCategory', 'jobType', 'employmentType', 'experience', 'noticePeriod', 'walkinDetails', 'salary', 'lastDate', 'applicationMethod', 'applicationLink', 'status', 'referralCode'];
+            fields.forEach(field => {
+                const el = document.getElementById(field);
+                if (el && data[field]) {
+                    el.value = data[field];
+                }
+            });
+
+            if (data.skills && Array.isArray(data.skills)) {
+                document.getElementById('skills').value = data.skills.join(', ');
+            }
+            if (data.qualifications && Array.isArray(data.qualifications)) {
+                document.getElementById('qualifications').value = data.qualifications.join('\n');
+            }
+            if (data.description) {
+                 document.getElementById('description').value = data.description;
+            }
+
+            if (document.getElementById('isActive')) {
+                document.getElementById('isActive').value = data.isActive ? 'true' : 'false';
+            }
+
+            if (data.location) {
+                const locations = data.location.split(', ');
+                const locationCheckboxes = document.querySelectorAll('.location-checkbox');
+                locationCheckboxes.forEach(cb => {
+                    if (locations.includes(cb.value)) {
+                        cb.checked = true;
+                    }
+                });
+                const locationBtn = document.getElementById('locationBtn');
+                const locationInput = document.getElementById('location');
+                locationInput.value = data.location;
+                if (locations.length === 0) {
+                    locationBtn.textContent = 'Select Location';
+                } else if (locations.length <= 2) {
+                    locationBtn.textContent = locations.join(', ');
+                } else {
+                    locationBtn.textContent = `${locations.length} Selected`;
+                }
+                validateField(locationInput);
+            }
+
+            if (data.educationLevel) {
+                const eduLevels = data.educationLevel.split(', ');
+                const educationCheckboxes = document.querySelectorAll('.education-checkbox');
+                educationCheckboxes.forEach(cb => {
+                    if (eduLevels.includes(cb.value)) {
+                        cb.checked = true;
+                    }
+                });
+                const educationBtn = document.getElementById('educationLevelBtn');
+                const educationInput = document.getElementById('educationLevel');
+                educationInput.value = data.educationLevel;
+                if (eduLevels.length === 0) {
+                    educationBtn.textContent = 'Select Education Level';
+                } else if (eduLevels.length <= 2) {
+                    educationBtn.textContent = eduLevels.join(', ');
+                } else {
+                    educationBtn.textContent = `${eduLevels.length} Selected`;
+                }
+                validateField(educationInput);
+            }
+
+            if (data.companyId) {
+                const companyRef = doc(db, 'companies', data.companyId);
+                const companySnap = await getDoc(companyRef);
+                if (companySnap.exists()) {
+                    const companyData = companySnap.data();
+                    const useExistingCb = document.getElementById('useExistingCompany');
+                    if(useExistingCb) {
+                        useExistingCb.checked = true;
+                        useExistingCb.dispatchEvent(new Event('change'));
+                    }
+                    
+                    document.getElementById('companyId').value = data.companyId;
+                    document.getElementById('companyName').value = companyData.name;
+                    
+                    if (companyData.logoURL) {
+                        const preview = document.getElementById('logoPreview');
+                        preview.src = companyData.logoURL;
+                        preview.style.display = 'block';
+                    }
+                }
+            }
+
+        } else {
+            showAlert('Job not found', 'danger');
+        }
+    } catch (error) {
+        console.error("Error loading job:", error);
+        showAlert('Error loading job data', 'danger');
+    }
+}
+
 // Initialize the form
 document.addEventListener('DOMContentLoaded', function () {
+    checkEditMode();
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(tooltipTriggerEl => {
@@ -483,22 +606,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 applyCount: 0
             };
 
-            // Add job to Firestore
-            const jobsCollection = collection(db, 'jobs');
-            await addDoc(jobsCollection, jobData);
+            if (isEditMode && editJobId) {
+                 const jobRef = doc(db, 'jobs', editJobId);
+                 delete jobData.createdAt; 
+                 delete jobData.postedBy;
+                 delete jobData.views;
+                 delete jobData.applyCount;
+                 
+                 jobData.updatedAt = getIndianTimestamp();
+                 
+                 await updateDoc(jobRef, jobData);
+                 showAlert('Job updated successfully! Redirecting...', 'success');
+                 
+                 setTimeout(() => {
+                     window.location.href = 'index.html';
+                 }, 1500);
+            } else {
+                // Add job to Firestore
+                const jobsCollection = collection(db, 'jobs');
+                await addDoc(jobsCollection, jobData);
 
-            // Show success message and reset form
-            showAlert('Job posted successfully!', 'success');
-            this.reset();
-            location.reload();
-            document.getElementById('logoPreview').style.display = 'none';
-            document.getElementById('companyId').value = '';
-            document.getElementById('useExistingCompany').checked = false;
-            document.getElementById('companyFormFields').style.display = 'block';
+                // Show success message and reset form
+                showAlert('Job posted successfully!', 'success');
+                this.reset();
+                location.reload();
+                document.getElementById('logoPreview').style.display = 'none';
+                document.getElementById('companyId').value = '';
+                document.getElementById('useExistingCompany').checked = false;
+                document.getElementById('companyFormFields').style.display = 'block';
 
-            // Reset to first step
-            document.querySelectorAll('.form-step').forEach(step => step.classList.remove('active'));
-            document.getElementById('step1').classList.add('active');
+                // Reset to first step
+                document.querySelectorAll('.form-step').forEach(step => step.classList.remove('active'));
+                document.getElementById('step1').classList.add('active');
+            }
 
         } catch (error) {
             console.error('Error posting job:', error);
