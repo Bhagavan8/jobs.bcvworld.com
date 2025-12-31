@@ -120,6 +120,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+    // Expose reset function globally for the button
+    window.resetFinancialData = async function() {
+        if (!confirm('Final warning: This will wipe your database clean (except credit cards). Proceed?')) return;
+        
+        const btn = document.querySelector('button[onclick*="resetFinancialData"]');
+        let originalContent = '';
+        if (btn) {
+            originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Deleting...';
+        }
+
+        try {
+            const collections = ['financialRecords', 'financialLoans', 'financialInvestments', 'financialRecurring'];
+            for (const colName of collections) {
+                const q = query(collection(db, colName));
+                const snapshot = await getDocs(q);
+                const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, colName, d.id)));
+                await Promise.all(deletePromises);
+                console.log(`Deleted ${snapshot.size} documents from ${colName}`);
+            }
+            alert('All specified financial data has been deleted successfully.');
+            window.location.reload();
+        } catch (error) {
+            console.error('Error resetting data:', error);
+            alert('Error resetting data: ' + error.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
+    };
 });
 
 // Auth Check
