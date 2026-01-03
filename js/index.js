@@ -777,7 +777,7 @@ auth.onAuthStateChanged((user) => {
                     <div class="dropdown">
                         <button class="user-dropdown" data-bs-toggle="dropdown">
                             <div class="user-avatar">
-                                <img src="${profileImage}" alt="${firstName}">
+                                <img src="${profileImage}" alt="${firstName}" onerror="this.onerror=null;this.src='/images/default.webp'">
                                 <span class="status-indicator online"></span>
                             </div>
                             <div class="user-info">
@@ -807,7 +807,7 @@ auth.onAuthStateChanged((user) => {
             if (sidebarFooter) {
                 sidebarFooter.innerHTML = `
                     <div class="user-profile">
-                        <img src="${profileImage}" alt="${firstName}" class="profile-img">
+                        <img src="${profileImage}" alt="${firstName}" class="profile-img" onerror="this.onerror=null;this.src='/images/default.webp'">
                         <div class="profile-info">
                             <h6 class="profile-name">${firstName}</h6>
                             <span class="profile-role">${userRole}</span>

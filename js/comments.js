@@ -197,10 +197,10 @@ function updateUserInterface(userData, user) {
     if (sidebarFooter) {
         sidebarFooter.innerHTML = `
             <div class="user-profile">
-                <img src="${profileImage}" alt="${firstName}" class="profile-img">
+                <img src="${profileImage}" alt="${firstName}" class="profile-img" onerror="this.onerror=null;this.src='/images/default.webp'">
                 <div class="profile-info">
-                    <h6 class="profile-name">${firstName}</h6>
-                    <span class="profile-role">${userRole}</span>
+                    <h6 class="profile-name" id="sidebarUserName">${firstName}</h6>
+                    <span class="profile-role" id="sidebarUserRole">${userRole}</span>
                 </div>
             </div>
         `;
@@ -213,7 +213,7 @@ function updateUserInterface(userData, user) {
             <div class="dropdown">
                 <button class="user-dropdown" data-bs-toggle="dropdown">
                     <div class="user-avatar">
-                        <img src="${profileImage}" alt="${firstName}">
+                        <img src="${profileImage}" alt="${firstName}" onerror="this.onerror=null;this.src='/images/default.webp'">
                         <span class="status-indicator online"></span>
                     </div>
                     <div class="user-info">
@@ -223,17 +223,17 @@ function updateUserInterface(userData, user) {
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end animate slideIn">
                     <li class="dropdown-header">Welcome, ${firstName}!</li>
-                    <li><a class="dropdown-item" href="profile-upload.html"><i class="bi bi-person-circle me-2"></i>My Profile</a></li>
+                    <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person-circle me-2"></i>My Profile</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" id="logoutBtnDropdown"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                    <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
                 </ul>
             </div>
         `;
         
-        // Add listener to new logout button
-        const logoutBtnDropdown = document.getElementById('logoutBtnDropdown');
-        if (logoutBtnDropdown) {
-            logoutBtnDropdown.addEventListener('click', handleLogout);
+        // Re-attach logout listener for the new button
+        const logoutBtn = userMenuDropdown.querySelector('#logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
         }
     }
 }

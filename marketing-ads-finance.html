@@ -79,7 +79,7 @@
             gap: 4px;
             overflow: hidden;
             min-width: 280px;
-            max-width: 420px;
+            max-width: 600px;
             width: 100%;
             cursor: pointer;
         }
@@ -104,7 +104,7 @@
             position: absolute;
             top: 4px;
             left: 4px;
-            width: calc(50% - 6px);
+            width: calc(33.333% - 6px);
             height: calc(100% - 8px);
             border-radius: 999px;
             background: #fff;
@@ -113,7 +113,10 @@
             z-index: 0;
         }
         .toggle-track.right-active .toggle-knob {
-            left: calc(50% + 2px);
+            left: calc(33.333% + 2px);
+        }
+        .toggle-track.far-right-active .toggle-knob {
+            left: calc(66.666% + 2px);
         }
         .subscription-card {
             border-left: 5px solid #0d6efd;
@@ -125,6 +128,12 @@
         .subscription-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 576px) {
+            .toggle-track .toggle-option {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.25rem;
+            }
         }
     </style>
 </head>
@@ -281,7 +290,8 @@
                     <div class="toggle-track">
                         <div class="toggle-knob"></div>
                         <button class="toggle-option active" data-view="adspend">Ad Spend</button>
-                        <button class="toggle-option" data-view="recurring">Subscriptions & Auto Debit</button>
+                        <button class="toggle-option" data-view="recurring">Subscriptions</button>
+                        <button class="toggle-option" data-view="website">Website Finance</button>
                     </div>
                 </div>
                 
@@ -430,6 +440,74 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Website Finance View -->
+                <div id="websiteFinanceView" style="display: none;">
+                    <!-- Summary Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-12 col-md-4">
+                            <div class="card finance-card h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 opacity-75">Total Revenue</h6>
+                                    <h2 class="card-title mb-0 fw-bold" id="webTotalRevenue">₹0.00</h2>
+                                    <small class="opacity-75">From Website</small>
+                                    <i class="bi bi-graph-up-arrow card-icon-bg"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="card finance-card h-100" style="background: linear-gradient(135deg, #ef476f 0%, #ff1053 100%); color: white;">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 opacity-75">Total Expenses</h6>
+                                    <h2 class="card-title mb-0 fw-bold" id="webTotalExpense">₹0.00</h2>
+                                    <small class="opacity-75">For Website</small>
+                                    <i class="bi bi-cart-x card-icon-bg"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="card finance-card h-100" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); color: white;">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 opacity-75">Net Profit</h6>
+                                    <h2 class="card-title mb-0 fw-bold" id="webNetProfit">₹0.00</h2>
+                                    <small class="opacity-75">Revenue - Expenses</small>
+                                    <i class="bi bi-wallet2 card-icon-bg"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Button -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">Website Transactions</h5>
+                        <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addWebsiteTransactionModal">
+                            <i class="bi bi-plus-lg me-1"></i> Add Transaction
+                        </button>
+                    </div>
+
+                    <!-- List -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="websiteTransactionsList">
+                                <div class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                         <!-- Pagination -->
+                        <div class="card-footer bg-white border-top-0 py-3">
+                             <div class="d-flex justify-content-between align-items-center" id="webPaginationControls" style="display: none;">
+                                <span class="text-muted small" id="webPageInfo">Page 1 of 1</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="webPrevBtn" disabled>Previous</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="webNextBtn" disabled>Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -455,6 +533,78 @@
                         <div class="mb-3">
                             <label class="form-label">Description / Campaign Name</label>
                             <input type="text" class="form-control" id="trxDescription" placeholder="e.g. Summer Sale Campaign">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill">Save Transaction</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Subscription Modal -->
+    <div class="modal fade" id="addSubscriptionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Subscription</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="subscriptionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="subName" required placeholder="e.g. Netflix, Server Cost">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="subAmount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Frequency</label>
+                            <select class="form-select" id="subFrequency">
+                                <option value="Monthly">Monthly</option>
+                                <option value="Yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Next Due Date</label>
+                            <input type="date" class="form-control" id="subDate">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill">Save Subscription</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Website Transaction Modal -->
+    <div class="modal fade" id="addWebsiteTransactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Website Transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="websiteTransactionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="webTrxType" required>
+                                <option value="revenue">Revenue (Income)</option>
+                                <option value="expense">Expense (Cost)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="webTrxAmount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="webTrxDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <input type="text" class="form-control" id="webTrxDescription" placeholder="e.g. Ad Revenue, Domain Cost" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 rounded-pill">Save Transaction</button>
                     </form>

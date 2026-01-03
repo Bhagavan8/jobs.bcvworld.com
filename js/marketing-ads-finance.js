@@ -16,7 +16,9 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 let currentUser = null;
 let transactions = [];
 let subscriptions = [];
+let websiteTransactions = [];
 let __trxPage = 1;
+let __webTrxPage = 1;
 const __trxPageSize = 5; // User requested 5
 let __submitting = false;
 
@@ -32,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set default date to today
     const trxDate = document.getElementById('trxDate');
     if(trxDate) trxDate.valueAsDate = new Date();
+    
+    const webTrxDate = document.getElementById('webTrxDate');
+    if(webTrxDate) webTrxDate.valueAsDate = new Date();
 
     // Sidebar Logic
     setupSidebar();
@@ -46,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Form Submit - Subscriptions
     const subForm = document.getElementById('subscriptionForm');
     if(subForm) subForm.addEventListener('submit', handleSubscriptionSubmit);
+
+    // Form Submit - Website Transactions
+    const webForm = document.getElementById('websiteTransactionForm');
+    if(webForm) webForm.addEventListener('submit', handleWebsiteTransactionSubmit);
 
     // Pagination controls
     const prevBtn = document.getElementById('prevBtn');
@@ -65,6 +74,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (__trxPage < totalPages) {
                 __trxPage++;
                 renderTransactions();
+            }
+        });
+    }
+
+    // Website Pagination
+    const webPrevBtn = document.getElementById('webPrevBtn');
+    if(webPrevBtn) {
+        webPrevBtn.addEventListener('click', () => {
+            if (__webTrxPage > 1) {
+                __webTrxPage--;
+                renderWebsiteTransactions();
+            }
+        });
+    }
+
+    const webNextBtn = document.getElementById('webNextBtn');
+    if(webNextBtn) {
+        webNextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(websiteTransactions.length / __trxPageSize);
+            if (__webTrxPage < totalPages) {
+                __webTrxPage++;
+                renderWebsiteTransactions();
             }
         });
     }
@@ -128,6 +159,7 @@ function setupToggle() {
     const options = track.querySelectorAll('.toggle-option');
     const adSpendView = document.getElementById('adSpendView');
     const recurringView = document.getElementById('recurringView');
+    const websiteFinanceView = document.getElementById('websiteFinanceView');
     
     options.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -137,15 +169,24 @@ function setupToggle() {
             options.forEach(o => o.classList.remove('active'));
             btn.classList.add('active');
             
-            // Update Track Knob and View
+            // Reset knob classes
+            track.classList.remove('right-active', 'far-right-active');
+
+            // Hide all views
+            if(adSpendView) adSpendView.style.display = 'none';
+            if(recurringView) recurringView.style.display = 'none';
+            if(websiteFinanceView) websiteFinanceView.style.display = 'none';
+
+            // Show selected view
             if (view === 'recurring') {
                 track.classList.add('right-active');
-                if(adSpendView) adSpendView.style.display = 'none';
                 if(recurringView) recurringView.style.display = 'block';
+            } else if (view === 'website') {
+                track.classList.add('far-right-active'); // Need CSS for this if we want knob movement
+                // For now, let's just use simple hiding/showing as knob css might be complex for 3 items
+                if(websiteFinanceView) websiteFinanceView.style.display = 'block';
             } else {
-                track.classList.remove('right-active');
                 if(adSpendView) adSpendView.style.display = 'block';
-                if(recurringView) recurringView.style.display = 'none';
             }
         });
     });
@@ -160,7 +201,7 @@ function updateUserInterface(userData, user) {
     if (sidebarFooter) {
         sidebarFooter.innerHTML = `
             <div class="user-profile">
-                <img src="${profileImage}" alt="${firstName}" class="profile-img">
+                <img src="${profileImage}" alt="${firstName}" class="profile-img" onerror="this.onerror=null;this.src='/images/default.webp'">
                 <div class="profile-info">
                     <h6 class="profile-name">${firstName}</h6>
                     <span class="profile-role">Admin</span>
@@ -185,7 +226,7 @@ function updateUserInterface(userData, user) {
             <div class="dropdown">
                 <button class="user-dropdown" data-bs-toggle="dropdown">
                     <div class="user-avatar">
-                        <img src="${profileImage}" alt="${firstName}">
+                        <img src="${profileImage}" alt="${firstName}" onerror="this.onerror=null;this.src='/images/default.webp'">
                         <span class="status-indicator online"></span>
                     </div>
                     <div class="user-info">
@@ -195,13 +236,9 @@ function updateUserInterface(userData, user) {
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end animate slideIn">
                     <li class="dropdown-header">Welcome, ${firstName}!</li>
-                    <li><a class="dropdown-item" href="profile-upload.html">
-                        <i class="bi bi-person-circle me-2"></i>My Profile
-                    </a></li>
+                    <li><a class="dropdown-item" href="profile-upload.html"><i class="bi bi-person-circle me-2"></i>My Profile</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" id="logoutBtn">
-                        <i class="bi bi-box-arrow-right me-2"></i>Sign Out
-                    </a></li>
+                    <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                 </ul>
             </div>
         `;
@@ -226,6 +263,15 @@ function initializeFinance() {
         subscriptions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderSubscriptions();
     }, (error) => console.error("Error fetching subscriptions:", error));
+
+    // Website Transactions
+    const qWeb = query(collection(db, 'websiteTransactions'), orderBy('date', 'desc'), orderBy('timestamp', 'desc'));
+    onSnapshot(qWeb, (snapshot) => {
+        websiteTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        calculateWebsiteStats();
+        __webTrxPage = 1;
+        renderWebsiteTransactions();
+    }, (error) => console.error("Error fetching website transactions:", error));
 }
 
 function calculateStats() {
@@ -452,7 +498,7 @@ async function handleTransactionSubmit(e) {
         
         // Close modal
         const modalEl = document.getElementById('addTransactionModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         if(modal) modal.hide();
 
         showToast('Transaction added successfully');
@@ -495,13 +541,144 @@ async function handleSubscriptionSubmit(e) {
         
         // Close modal
         const modalEl = document.getElementById('addSubscriptionModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         if(modal) modal.hide();
 
         showToast('Subscription added successfully');
     } catch (error) {
         console.error("Error adding subscription:", error);
         showToast('Error saving subscription', 'error');
+    } finally {
+        __submitting = false;
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+function calculateWebsiteStats() {
+    let totalRevenue = 0;
+    let totalExpense = 0;
+
+    websiteTransactions.forEach(t => {
+        const amount = parseFloat(t.amount) || 0;
+        if (t.type === 'revenue') {
+            totalRevenue += amount;
+        } else {
+            totalExpense += amount;
+        }
+    });
+
+    const netProfit = totalRevenue - totalExpense;
+
+    document.getElementById('webTotalRevenue').textContent = formatCurrency(totalRevenue);
+    document.getElementById('webTotalExpense').textContent = formatCurrency(totalExpense);
+    
+    const profitEl = document.getElementById('webNetProfit');
+    profitEl.textContent = formatCurrency(netProfit);
+    profitEl.className = `card-title mb-0 fw-bold ${netProfit >= 0 ? 'text-white' : 'text-warning'}`;
+}
+
+function renderWebsiteTransactions() {
+    const list = document.getElementById('websiteTransactionsList');
+    if(!list) return;
+    list.innerHTML = '';
+
+    if (websiteTransactions.length === 0) {
+        list.innerHTML = '<div class="text-center py-5 text-muted">No transactions found</div>';
+        const pagination = document.getElementById('webPaginationControls');
+        if(pagination) pagination.style.display = 'none';
+        return;
+    }
+
+    const start = (__webTrxPage - 1) * __trxPageSize;
+    const end = start + __trxPageSize;
+    const pageItems = websiteTransactions.slice(start, end);
+
+    pageItems.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item list-group-item-action py-3 transaction-item';
+        const date = new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const isRevenue = t.type === 'revenue';
+        
+        item.style.borderLeftColor = isRevenue ? '#11998e' : '#ef476f';
+
+        item.innerHTML = `
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 fw-bold">${t.description || 'Website Transaction'}</h6>
+                    <small class="text-muted">
+                        <span class="badge ${isRevenue ? 'bg-success' : 'bg-danger'} me-2">${isRevenue ? 'Revenue' : 'Expense'}</span>
+                        <i class="bi bi-calendar3 me-1"></i>${date}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <h5 class="mb-0 fw-bold ${isRevenue ? 'text-success' : 'text-danger'}">${isRevenue ? '+' : '-'}${formatCurrency(t.amount)}</h5>
+                    <button class="btn btn-sm btn-link text-danger p-0 mt-1 delete-web-btn" data-id="${t.id}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Add delete listener
+        item.querySelector('.delete-web-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(confirm('Delete this transaction?')) {
+                deleteDoc(doc(db, 'websiteTransactions', t.id));
+            }
+        });
+
+        list.appendChild(item);
+    });
+
+    // Pagination
+    const totalPages = Math.ceil(websiteTransactions.length / __trxPageSize);
+    const pagination = document.getElementById('webPaginationControls');
+    if(pagination) {
+        pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+        document.getElementById('webPageInfo').textContent = `Page ${__webTrxPage} of ${totalPages}`;
+        document.getElementById('webPrevBtn').disabled = __webTrxPage === 1;
+        document.getElementById('webNextBtn').disabled = __webTrxPage === totalPages;
+    }
+}
+
+async function handleWebsiteTransactionSubmit(e) {
+    e.preventDefault();
+    if (__submitting) return;
+    __submitting = true;
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+    try {
+        const type = document.getElementById('webTrxType').value;
+        const amount = parseFloat(document.getElementById('webTrxAmount').value);
+        const date = document.getElementById('webTrxDate').value;
+        const description = document.getElementById('webTrxDescription').value;
+
+        await addDoc(collection(db, 'websiteTransactions'), {
+            type,
+            amount,
+            date,
+            description,
+            timestamp: serverTimestamp(),
+            createdBy: currentUser.uid
+        });
+
+        e.target.reset();
+        document.getElementById('webTrxDate').valueAsDate = new Date(); // Reset date to today
+        
+        // Close modal
+        const modalEl = document.getElementById('addWebsiteTransactionModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if(modal) modal.hide();
+
+        showToast('Website transaction added successfully');
+    } catch (error) {
+        console.error("Error adding website transaction:", error);
+        showToast('Error saving transaction', 'error');
     } finally {
         __submitting = false;
         btn.disabled = false;

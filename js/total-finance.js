@@ -14,6 +14,7 @@ let adTransactions = []; // Ad Spend
 let investments = [];
 let loans = [];
 let subscriptions = [];
+let websiteTransactions = [];
 let currentUser = null;
 
 // Format currency
@@ -57,7 +58,7 @@ function updateUserInterface(userData, user) {
             <div class="dropdown">
                 <button class="user-dropdown border-0 bg-transparent d-flex align-items-center gap-2" data-bs-toggle="dropdown">
                     <div class="user-avatar" style="width:32px; height:32px; border-radius:50%; overflow:hidden;">
-                        <img src="${profileImage}" alt="${firstName}" style="width:100%; height:100%; object-fit:cover;">
+                        <img src="${profileImage}" alt="${firstName}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null;this.src='/images/default.webp'">
                     </div>
                     <span class="d-none d-md-block fw-medium">${firstName}</span>
                     <i class="bi bi-chevron-down small"></i>
@@ -120,6 +121,12 @@ function initializeData() {
         subscriptions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         calculateAll();
     });
+
+    // 6. Website Transactions
+    onSnapshot(collection(db, 'websiteTransactions'), (snap) => {
+        websiteTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        calculateAll();
+    });
 }
 
 function calculateAll() {
@@ -160,6 +167,8 @@ function calculateAll() {
     let totalInvValue = 0;
     let totalLoanBalance = 0;
     let totalRecurringMonthly = 0;
+    let totalWebsiteRevenue = 0;
+    let totalWebsiteExpenses = 0;
 
     // 1. Process General Transactions
     transactions.forEach(t => {
@@ -244,6 +253,42 @@ function calculateAll() {
         }
     });
 
+    // 6. Website Transactions
+    websiteTransactions.forEach(t => {
+        const amount = parseFloat(t.amount) || 0;
+        const date = new Date(t.date);
+        const tMonth = date.getMonth();
+        const tYear = date.getFullYear();
+
+        if (t.type === 'revenue') {
+            totalWebsiteRevenue += amount;
+            totalIncome += amount;
+        } else {
+            // Expense
+            totalWebsiteExpenses += amount;
+            spendAllTime += amount;
+
+            // Update Time-Based Spends for Website Expenses
+            // Today
+            if (t.date === todayStr) spendToday += amount;
+
+            // Week
+            if (date >= startOfWeek && date <= now) spendWeek += amount;
+
+            // This Month
+            if (tMonth === currentMonth && tYear === currentYear) spendMonth += amount;
+
+            // Last Month
+            if (tMonth === lastMonth && tYear === lastMonthYear) spendLastMonth += amount;
+
+            // This Year
+            if (tYear === currentYear) spendYear += amount;
+
+            // Last Year
+            if (tYear === lastYear) spendLastYear += amount;
+        }
+    });
+
     // Update UI
     // Grand Totals
     document.getElementById('totalAllIncome').textContent = formatCurrency(totalIncome);
@@ -263,4 +308,8 @@ function calculateAll() {
     document.getElementById('totalInvestments').textContent = formatCurrency(totalInvValue);
     document.getElementById('totalLoans').textContent = formatCurrency(totalLoanBalance);
     document.getElementById('totalRecurring').textContent = formatCurrency(totalRecurringMonthly);
+
+    // Website Finance
+    document.getElementById('totalWebsiteRevenue').textContent = formatCurrency(totalWebsiteRevenue);
+    document.getElementById('totalWebsiteExpenses').textContent = formatCurrency(totalWebsiteExpenses);
 }

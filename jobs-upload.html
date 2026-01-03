@@ -59,7 +59,6 @@
             max-width: 200px;
             max-height: 200px;
             display: none;
-            margin-top: 10px;
         }
 
         @media (max-width: 768px) {
@@ -552,7 +551,7 @@
                                 <input type="file" class="form-control" id="companyLogo" accept="image/*">
                                 <small class="text-muted">Upload company logo image (optional if using existing
                                     company)</small>
-                                <img id="logoPreview" class="mt-2" style="max-width: 200px; display: none;"
+                                <img id="logoPreview" class="mt-2" style="max-width: 200px; display: none;" onerror="this.onerror=null;this.src='/images/default.webp'">
                                     alt="Logo preview">
                             </div>
                         </div>
