@@ -340,6 +340,7 @@ function initializeFinance() {
         renderCreditCardTransactions(creditCardTransactions);
         renderCreditCards(creditCards);
         updateCreditCardSummary();
+        updateDashboard(); // Update dashboard stats with CC data
     }, (error) => console.error("Error fetching credit card transactions:", error));
 }
 
@@ -868,11 +869,15 @@ function renderCreditCards(list) {
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     container.innerHTML = list.map(c => {
         const txns = creditCardTransactions.filter(t => t.cardId === c.id);
-        const monthPurchases = txns.filter(t => t.type === 'purchase' && new Date(t.date) >= startOfMonth).reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-        const monthPayments = txns.filter(t => t.type === 'payment' && new Date(t.date) >= startOfMonth).reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-        const spent = (c.spent || 0) + monthPurchases;
-        const paid = (c.paid || 0) + monthPayments;
+        
+        // Use ALL-TIME transactions to calculate true balance
+        const allPurchases = txns.filter(t => t.type === 'purchase').reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        const allPayments = txns.filter(t => t.type === 'payment').reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        
+        const spent = (c.spent || 0) + allPurchases; // Initial spent + all purchases
+        const paid = (c.paid || 0) + allPayments;   // Initial paid + all payments
         const used = Math.max(0, spent - paid);
+        
         const remaining = Math.max(0, (c.limit || 0) - used);
         const usagePct = c.limit > 0 ? Math.min(100, (used / c.limit) * 100) : 0;
         return `
@@ -1000,16 +1005,42 @@ function updateCreditCardSummary() {
     const lastMonthLabelText = `${lastMonthDateObj.toLocaleString(undefined, { month: 'long' })} ${lastMonthDateObj.getFullYear()}`;
     const txns = creditCardTransactions.filter(t => !cardId || t.cardId === cardId);
     let daily = 0, weekly = 0, monthly = 0, lastMonth = 0;
+    let monthlyPaid = 0;
+    let totalLifetime = 0;
+
     txns.forEach(t => {
-        if (t.type !== 'purchase') return;
         const amt = parseFloat(t.amount) || 0;
         const d = new Date(t.date);
         d.setHours(0,0,0,0);
-        if (d.getTime() === today.getTime()) daily += amt;
-        if (d >= startOfWeek) weekly += amt;
-        if (d >= startOfMonth) monthly += amt;
-        if (d >= startOfLastMonth && d <= endOfLastMonth) lastMonth += amt;
+
+        if (t.type === 'purchase') {
+            totalLifetime += amt;
+            if (d.getTime() === today.getTime()) daily += amt;
+            if (d >= startOfWeek) weekly += amt;
+            if (d >= startOfMonth) monthly += amt;
+            if (d >= startOfLastMonth && d <= endOfLastMonth) lastMonth += amt;
+        } else if (t.type === 'payment') {
+            if (d >= startOfMonth) monthlyPaid += amt;
+        }
     });
+
+    // Calculate Total Outstanding
+    let totalOutstanding = 0;
+    const cardsToCalc = cardId ? creditCards.filter(c => c.id === cardId) : creditCards;
+    
+    cardsToCalc.forEach(c => {
+         const cTxns = creditCardTransactions.filter(t => t.cardId === c.id);
+         
+         // Use ALL-TIME transactions
+         const allPurchases = cTxns.filter(t => t.type === 'purchase').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+         const allPayments = cTxns.filter(t => t.type === 'payment').reduce((a,b)=>a+(parseFloat(b.amount)||0),0);
+         
+         const spent = (c.spent || 0) + allPurchases;
+         const paid = (c.paid || 0) + allPayments;
+         const used = Math.max(0, spent - paid);
+         totalOutstanding += used;
+    });
+
     const diff = monthly - lastMonth;
     const dailyEl = document.getElementById('ccDailySpent');
     const weeklyEl = document.getElementById('ccWeeklySpent');
@@ -1018,6 +1049,11 @@ function updateCreditCardSummary() {
     const diffEl = document.getElementById('ccSpentDiff');
     const mLabelEl = document.getElementById('ccMonthlyLabel');
     const lmLabelEl = document.getElementById('ccLastMonthLabel');
+    const totalOutEl = document.getElementById('ccTotalOutstanding');
+    const totalExpEl = document.getElementById('ccTotalExpenses');
+    const monthlyPaidEl = document.getElementById('ccMonthlyPaid');
+    const mPaidLabelEl = document.getElementById('ccMonthlyPaidLabel');
+
     if (dailyEl) dailyEl.innerHTML = formatCurrency(daily);
     if (weeklyEl) weeklyEl.innerHTML = formatCurrency(weekly);
     if (monthlyEl) monthlyEl.innerHTML = formatCurrency(monthly);
@@ -1025,6 +1061,10 @@ function updateCreditCardSummary() {
     if (diffEl) diffEl.innerHTML = formatCurrency(diff);
     if (mLabelEl) mLabelEl.textContent = monthLabelText;
     if (lmLabelEl) lmLabelEl.textContent = lastMonthLabelText;
+    if (totalOutEl) totalOutEl.innerHTML = formatCurrency(totalOutstanding);
+    if (totalExpEl) totalExpEl.innerHTML = formatCurrency(totalLifetime);
+    if (monthlyPaidEl) monthlyPaidEl.innerHTML = formatCurrency(monthlyPaid);
+    if (mPaidLabelEl) mPaidLabelEl.textContent = monthLabelText;
 }
 
 window.updateCreditCardUsage = updateCreditCardUsage;
@@ -1185,6 +1225,32 @@ function updateDashboard() {
         // but NOT added to "Total Expenses" display.
     });
 
+    // --- ADD CREDIT CARD EXPENSES TO STATS (But NOT to Balance) ---
+    let totalCCExpense = 0;
+    creditCardTransactions.forEach(t => {
+        if (t.type === 'purchase') {
+            const amount = parseFloat(t.amount) || 0;
+            const tDate = new Date(t.date);
+            tDate.setHours(0,0,0,0);
+            
+            totalCCExpense += amount;
+
+            // Add to time-based stats
+            if (tDate.getTime() === today.getTime()) {
+                dailyExp += amount;
+            }
+            if (tDate >= startOfWeek) {
+                weeklyExp += amount;
+            }
+            if (tDate >= startOfMonth) {
+                monthlyExp += amount;
+            }
+            if (tDate >= startOfLastMonth && tDate < startOfMonth) {
+                lastMonthExp += amount;
+            }
+        }
+    });
+
     // Calculate Real-time Loan Stats
     let totalOutstandingLoan = 0;
     let totalLoanPrincipal = 0;
@@ -1224,7 +1290,7 @@ function updateDashboard() {
     // Animate numbers
     animateValue('totalIncome', totalIncome);
     animateValue('totalLoanExpenses', totalEMI);   // Loan Expenses (Paid EMIs)
-    animateValue('totalOtherExpenses', totalExpense); // Regular Expenses
+    animateValue('totalOtherExpenses', totalExpense + totalCCExpense); // Regular Expenses (Cash + CC)
     
     // New Cards
     animateValue('monthlyEmiCommitment', monthlyEmiCommitment);
@@ -1237,9 +1303,18 @@ function updateDashboard() {
     // Update Breakdown Text
     const breakdownEl = document.getElementById('balanceBreakdown');
     if (breakdownEl) {
-        let bText = `Inc: ${formatCompact(totalIncome)} - Exp: ${formatCompact(totalExpense)} - Loan Paid: ${formatCompact(totalEMI)}`;
+        let bText = `Inc: ${formatCompact(totalIncome)} - Cash Exp: ${formatCompact(totalExpense)}`;
+        if (totalCCExpense > 0) bText += ` - CC Exp: ${formatCompact(totalCCExpense)}`;
+        bText += ` - Loan: ${formatCompact(totalEMI)}`;
         if (totalInvestedOutflow > 0) bText += ` - Inv: ${formatCompact(totalInvestedOutflow)}`;
         breakdownEl.innerHTML = bText;
+    }
+
+    // Add tooltip/info to Total Other Expenses card
+    const otherExpEl = document.getElementById('totalOtherExpenses');
+    if (otherExpEl) {
+        otherExpEl.title = `Cash: ${formatCurrency(totalExpense)} + Credit Card: ${formatCurrency(totalCCExpense)}`;
+        otherExpEl.parentElement.setAttribute('title', `Cash: ${formatCurrency(totalExpense)} + Credit Card: ${formatCurrency(totalCCExpense)}`);
     }
     
     // Update Breakdown Cards

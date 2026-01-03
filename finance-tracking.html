@@ -677,21 +677,22 @@
                             </div>
                         </div>
                         <div class="row g-4 mb-4">
+                            <!-- Row 1: High Level Stats -->
                             <div class="col-12 col-md-6 col-lg-3">
-                                <div class="card finance-card expense-card h-100">
+                                <div class="card finance-card balance-card h-100">
                                     <div class="card-body">
-                                        <h6 class="card-subtitle mb-2 opacity-75">Today Spent</h6>
-                                        <h2 class="card-title mb-0 fw-bold text-white" id="ccDailySpent">₹0.00</h2>
-                                        <i class="bi bi-calendar-event card-icon-bg"></i>
+                                        <h6 class="card-subtitle mb-2 opacity-75">Total Outstanding</h6>
+                                        <h2 class="card-title mb-0 fw-bold" id="ccTotalOutstanding">₹0.00</h2>
+                                        <i class="bi bi-bank card-icon-bg"></i>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-12 col-md-6 col-lg-3">
-                                <div class="card finance-card h-100" style="background: linear-gradient(135deg, #ef476f 0%, #fb5607 100%); color: white;">
+                                <div class="card finance-card expense-card h-100">
                                     <div class="card-body">
-                                        <h6 class="card-subtitle mb-2 opacity-75">Weekly Spent</h6>
-                                        <h2 class="card-title mb-0 fw-bold" id="ccWeeklySpent">₹0.00</h2>
-                                        <i class="bi bi-calendar-week card-icon-bg"></i>
+                                        <h6 class="card-subtitle mb-2 opacity-75">Total Expenses (Lifetime)</h6>
+                                        <h2 class="card-title mb-0 fw-bold" id="ccTotalExpenses">₹0.00</h2>
+                                        <i class="bi bi-wallet2 card-icon-bg"></i>
                                     </div>
                                 </div>
                             </div>
@@ -708,6 +709,18 @@
                                 </div>
                             </div>
                             <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card finance-card h-100" style="background: linear-gradient(135deg, #2ec4b6 0%, #20a4f3 100%); color: white;">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <h6 class="card-subtitle mb-2 opacity-75">This Month Paid</h6>
+                                            <small class="opacity-75" id="ccMonthlyPaidLabel"></small>
+                                        </div>
+                                        <h2 class="card-title mb-0 fw-bold" id="ccMonthlyPaid">₹0.00</h2>
+                                        <i class="bi bi-check-circle card-icon-bg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
                                 <div class="card finance-card h-100" style="background: linear-gradient(135deg, #ff9f1c 0%, #ffbf69 100%); color: white;">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start">
@@ -719,8 +732,28 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Row 2: Granular Stats -->
                             <div class="col-12 col-md-6 col-lg-3">
-                                <div class="card finance-card h-100" style="background: linear-gradient(135deg, #3a0ca3 0%, #4361ee 100%); color: white;">
+                                <div class="card finance-card h-100" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); color: white;">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 opacity-75">Today Spent</h6>
+                                        <h2 class="card-title mb-0 fw-bold" id="ccDailySpent">₹0.00</h2>
+                                        <i class="bi bi-calendar-event card-icon-bg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card finance-card h-100" style="background: linear-gradient(135deg, #ef476f 0%, #fb5607 100%); color: white;">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 opacity-75">Weekly Spent</h6>
+                                        <h2 class="card-title mb-0 fw-bold" id="ccWeeklySpent">₹0.00</h2>
+                                        <i class="bi bi-calendar-week card-icon-bg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3">
+                                <div class="card finance-card h-100" style="background: linear-gradient(135deg, #118ab2 0%, #06d6a0 100%); color: white;">
                                     <div class="card-body">
                                         <h6 class="card-subtitle mb-2 opacity-75">Difference (This vs Last)</h6>
                                         <h2 class="card-title mb-0 fw-bold" id="ccSpentDiff">₹0.00</h2>
