@@ -87,7 +87,7 @@ function applyFilters() {
     const roleFilter = document.getElementById('roleFilter').value;
 
     const filteredUsers = allUsers.filter(user => {
-        const name = (user.fullName || user.name || '').toLowerCase();
+        const name = resolveUserName(user).toLowerCase();
         const email = (user.email || '').toLowerCase();
         const phone = (user.phoneNumber || user.phone || '').toLowerCase();
         
@@ -102,7 +102,30 @@ function applyFilters() {
         return matchesSearch && matchesStatus && matchesRole;
     });
 
+    // Sort by Full Name (A-Z)
+    filteredUsers.sort((a, b) => {
+        const nameA = resolveUserName(a).toLowerCase();
+        const nameB = resolveUserName(b).toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+    });
+
     renderUsers(filteredUsers);
+}
+
+function resolveUserName(user) {
+    let name = user.fullName || user.name;
+    if (!name && user.firstName) {
+        name = `${user.firstName} ${user.lastName || ''}`.trim();
+    }
+    if (!name && user.displayName) {
+        name = user.displayName;
+    }
+    if (!name) {
+        name = user.email ? user.email.split('@')[0] : 'N/A';
+    }
+    return name;
 }
 
 function renderUsers(users) {
@@ -122,18 +145,7 @@ function renderUsers(users) {
     const paginatedUsers = users.slice(start, end);
 
     usersTableBody.innerHTML = paginatedUsers.map(user => {
-        // Try multiple fields for name to ensure it displays
-        let name = user.fullName || user.name;
-        if (!name && user.firstName) {
-            name = `${user.firstName} ${user.lastName || ''}`.trim();
-        }
-        if (!name && user.displayName) {
-            name = user.displayName;
-        }
-        if (!name) {
-            name = user.email ? user.email.split('@')[0] : 'N/A';
-        }
-
+        const name = resolveUserName(user);
         const email = user.email || 'N/A';
         const phone = user.phoneNumber || user.phone || 'N/A';
         const status = user.isActive !== false ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
@@ -162,7 +174,6 @@ function renderUsers(users) {
                 <td>${phone}</td>
                 <td>${dob}</td>
                 <td>${status}</td>
-                <td>${date}</td>
                 <td class="text-end pe-4">
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')" ${isCurrentUser ? 'disabled' : ''} title="${isCurrentUser ? 'Cannot delete yourself' : 'Delete User'}">
                         <i class="bi bi-trash"></i>
