@@ -90,8 +90,9 @@
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="newsImageFile" class="form-label">Upload Image</label>
-                    <input type="file" class="form-control" id="newsImageFile" accept="image/*">
+                    <label for="newsImageName" class="form-label">News Image Filename</label>
+                    <input type="text" class="form-control" id="newsImageName" placeholder="e.g. news-1.jpg">
+                    <div class="form-text text-muted">Image will be referenced from <b>assets/images/news/</b>. Ensure file exists there.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="newsStatus" class="form-label">Approval Status</label>

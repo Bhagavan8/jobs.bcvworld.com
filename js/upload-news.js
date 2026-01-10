@@ -69,6 +69,11 @@ async function loadNewsData() {
                 const urlEl = document.getElementById('newsUrl');
                 if (urlEl) { urlEl.value = data.url || ''; }
                 existingImageUrl = data.imageUrl || '';
+                if (existingImageUrl && existingImageUrl.includes('assets/images/news/')) {
+                    const filename = existingImageUrl.split('assets/images/news/')[1];
+                    const nameInput = document.getElementById('newsImageName');
+                    if (nameInput) nameInput.value = filename || '';
+                }
                 document.getElementById('newsStatus').value = data.status || 'pending';
 
                 // Update form button text
@@ -148,8 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return t;
             }).join('\n\n');
-            const imageFileInput = document.getElementById('newsImageFile');
-            const imageFile = imageFileInput?.files?.[0] || null;
+            const imageFileName = document.getElementById('newsImageName')?.value.trim();
             const status = document.getElementById('newsStatus').value;
             const url = document.getElementById('newsUrl')?.value || '';
 
@@ -157,12 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let imageUrl = existingImageUrl;
                 let imageName = '';
 
-                if (imageFile) {
-                    imageName = imageFile.name;
-                    const fileName = `news/${Date.now()}_${Math.random().toString(36).slice(2)}_${imageFile.name}`;
-                    const storageRef = ref(storage, fileName);
-                    await uploadBytes(storageRef, imageFile, { contentType: imageFile.type });
-                    imageUrl = await getDownloadURL(storageRef);
+                if (imageFileName) {
+                    imageName = imageFileName;
+                    imageUrl = `assets/images/news/${imageFileName}`;
                 }
 
                 const newsData = {
