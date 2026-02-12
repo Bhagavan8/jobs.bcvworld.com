@@ -15,6 +15,8 @@ let investments = [];
 let loans = [];
 let subscriptions = [];
 let websiteTransactions = [];
+let creditCards = [];
+let creditCardTransactions = [];
 let currentUser = null;
 
 // Format currency
@@ -127,6 +129,16 @@ function initializeData() {
         websiteTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         calculateAll();
     });
+
+    // 7. Credit Cards
+    onSnapshot(collection(db, 'financialCreditCards'), (snap) => {
+        creditCards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        calculateAll();
+    });
+    onSnapshot(collection(db, 'financialCreditCardTransactions'), (snap) => {
+        creditCardTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        calculateAll();
+    });
 }
 
 function calculateAll() {
@@ -169,6 +181,7 @@ function calculateAll() {
     let totalRecurringMonthly = 0;
     let totalWebsiteRevenue = 0;
     let totalWebsiteExpenses = 0;
+    let totalCreditOutstanding = 0;
 
     // 1. Process General Transactions
     transactions.forEach(t => {
@@ -289,6 +302,32 @@ function calculateAll() {
         }
     });
 
+    // 7. Credit Card Purchases (count as spend) and Outstanding
+    creditCardTransactions.forEach(t => {
+        if (t.type === 'purchase') {
+            const amount = parseFloat(t.amount) || 0;
+            const date = new Date(t.date);
+            const tMonth = date.getMonth();
+            const tYear = date.getFullYear();
+            spendAllTime += amount;
+            if (t.date === todayStr) spendToday += amount;
+            if (date >= startOfWeek && date <= now) spendWeek += amount;
+            if (tMonth === currentMonth && tYear === currentYear) spendMonth += amount;
+            if (tMonth === lastMonth && tYear === lastMonthYear) spendLastMonth += amount;
+            if (tYear === currentYear) spendYear += amount;
+            if (tYear === lastYear) spendLastYear += amount;
+        }
+    });
+    creditCards.forEach(c => {
+        const txns = creditCardTransactions.filter(t => t.cardId === c.id);
+        const allPurchases = txns.filter(t => t.type === 'purchase').reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        const allPayments = txns.filter(t => t.type === 'payment').reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        const spent = (parseFloat(c.spent) || 0) + allPurchases;
+        const paid = (parseFloat(c.paid) || 0) + allPayments;
+        const used = Math.max(0, spent - paid);
+        totalCreditOutstanding += used;
+    });
+
     // Update UI
     // Grand Totals
     document.getElementById('totalAllIncome').textContent = formatCurrency(totalIncome);
@@ -308,6 +347,8 @@ function calculateAll() {
     document.getElementById('totalInvestments').textContent = formatCurrency(totalInvValue);
     document.getElementById('totalLoans').textContent = formatCurrency(totalLoanBalance);
     document.getElementById('totalRecurring').textContent = formatCurrency(totalRecurringMonthly);
+    const ccOutEl = document.getElementById('totalCreditOutstanding');
+    if (ccOutEl) ccOutEl.textContent = formatCurrency(totalCreditOutstanding);
 
     // Website Finance
     document.getElementById('totalWebsiteRevenue').textContent = formatCurrency(totalWebsiteRevenue);
