@@ -1035,6 +1035,33 @@
         </div>
     </div>
 
+    <!-- Part Payment Modal -->
+    <div class="modal fade" id="partPayModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-primary">Record Part Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="partPayForm">
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" class="form-control" id="partPayAmount" required min="1" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="partPayDate" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Save Part Payment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Investment Modal -->
     <div class="modal fade" id="addInvestmentModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">

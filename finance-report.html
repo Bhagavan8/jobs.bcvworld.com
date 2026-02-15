@@ -22,6 +22,7 @@
         .bg-gradient-purple { background: linear-gradient(135deg, #7209b7 0%, #b5179e 100%); color: #fff; }
         .report-section h5 { font-weight: 700; }
         .table-responsive { max-height: 360px; overflow: auto; }
+        .chart-canvas { height: 240px !important; max-height: 240px; }
     </style>
     <link rel="icon" href="/favicon.ico">
     <meta name="robots" content="noindex">
@@ -34,7 +35,7 @@
             <div class="sidebar-header">
                 <div class="logo-wrapper">
                     <i class="bi bi-briefcase-fill logo-icon"></i>
-                    <h1 class="logo-text">Jobs<span> Admin</span></h1>
+                    <h1 class="logo-text">Finance<span> & Personal</span></h1>
                 </div>
                 <button class="sidebar-toggle d-lg-none">
                     <i class="bi bi-x-lg"></i>
@@ -129,6 +130,44 @@
                         </div>
                     </div>
                 </div>
+                <div class="row g-4 mb-4">
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card finance-card bg-gradient-dark h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">This Week Spend</h6>
+                                <h3 class="card-title mb-0 fw-bold" id="rptWeekSpend">₹0</h3>
+                                <i class="bi bi-calendar-week card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card finance-card bg-gradient-warning h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">This Month Spend</h6>
+                                <h3 class="card-title mb-0 fw-bold" id="rptMonthSpend">₹0</h3>
+                                <i class="bi bi-calendar-month card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card finance-card bg-gradient-purple h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">Last 6 Months Spend</h6>
+                                <h3 class="card-title mb-0 fw-bold" id="rptSixMonthsSpend">₹0</h3>
+                                <i class="bi bi-calendar3 card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card finance-card bg-gradient-primary h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 opacity-75">This Year Spend</h6>
+                                <h3 class="card-title mb-0 fw-bold" id="rptYearSpend">₹0</h3>
+                                <i class="bi bi-calendar2 card-icon-bg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row g-4 report-section mb-4">
                     <div class="col-12 col-xl-6">
                         <div class="card shadow-sm h-100">
@@ -136,7 +175,7 @@
                                 <h5 class="mb-0">Monthly Income vs Spend</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="chartIncomeVsSpend" height="140"></canvas>
+                                <canvas id="chartIncomeVsSpend" class="chart-canvas" height="140"></canvas>
                             </div>
                         </div>
                     </div>
@@ -146,7 +185,7 @@
                                 <h5 class="mb-0">Spend Breakdown</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="chartSpendBreakdown" height="140"></canvas>
+                                <canvas id="chartSpendBreakdown" class="chart-canvas" height="140"></canvas>
                             </div>
                         </div>
                     </div>
@@ -158,7 +197,7 @@
                                 <h5 class="mb-0">Net Balance Trend</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="chartBalanceTrend" height="140"></canvas>
+                                <canvas id="chartBalanceTrend" class="chart-canvas" height="140"></canvas>
                             </div>
                         </div>
                     </div>
@@ -168,7 +207,11 @@
                                 <h5 class="mb-0">Credit Card Purchases by Card</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="chartCCByCard" height="140"></canvas>
+                                <div id="ccNotice" class="alert alert-warning py-2 px-3 mb-3 d-none">
+                                    Some purchases aren’t linked to a card. Add or fix cards in
+                                    <a href="finance-tracking.html#tabCreditCards" class="alert-link">Credit Cards</a>.
+                                </div>
+                                <canvas id="chartCCByCard" class="chart-canvas" height="140"></canvas>
                             </div>
                         </div>
                     </div>
@@ -180,7 +223,7 @@
                                 <h5 class="mb-0">Website Revenue vs Expenses</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="chartWebsite" height="140"></canvas>
+                                <canvas id="chartWebsite" class="chart-canvas" height="140"></canvas>
                             </div>
                         </div>
                     </div>
@@ -226,6 +269,13 @@
                                     </thead>
                                     <tbody id="tblTransactions"></tbody>
                                 </table>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small id="trxPageInfo" class="text-muted"></small>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" id="trxPrevBtn">Prev</button>
+                                        <button class="btn btn-outline-secondary" id="trxNextBtn">Next</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -247,6 +297,13 @@
                                     </thead>
                                     <tbody id="tblCC"></tbody>
                                 </table>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small id="ccPageInfo" class="text-muted"></small>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" id="ccPrevBtn">Prev</button>
+                                        <button class="btn btn-outline-secondary" id="ccNextBtn">Next</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -269,6 +326,13 @@
                                     </thead>
                                     <tbody id="tblAds"></tbody>
                                 </table>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small id="adsPageInfo" class="text-muted"></small>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" id="adsPrevBtn">Prev</button>
+                                        <button class="btn btn-outline-secondary" id="adsNextBtn">Next</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -289,6 +353,83 @@
                                     </thead>
                                     <tbody id="tblWebsite"></tbody>
                                 </table>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small id="webPageInfo" class="text-muted"></small>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" id="webPrevBtn">Prev</button>
+                                        <button class="btn btn-outline-secondary" id="webNextBtn">Next</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-4 report-section mt-4">
+                    <div class="col-12 col-xl-5">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Top Spend Categories (90 days)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="chartTopCategories" class="chart-canvas" height="160"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-7">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                                <h5 class="mb-0">Savings & Planning (AI Insights)</h5>
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Horizon">
+                                    <button class="btn btn-outline-primary" data-horizon="6m">6 Months</button>
+                                    <button class="btn btn-outline-primary" data-horizon="10y">10 Years</button>
+                                    <button class="btn btn-outline-primary" data-horizon="15y">15 Years</button>
+                                    <button class="btn btn-outline-primary" data-horizon="20y">20 Years</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="aiInsights" class="small"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-4 report-section mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                                <h5 class="mb-0">Loan Payoff & Investment Plan</h5>
+                                <small class="text-muted">Real-time based on your loans & transactions</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-4">
+                                    <div class="col-12 col-lg-7">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Loan</th>
+                                                        <th class="text-end">Remaining</th>
+                                                        <th class="text-end">EMI</th>
+                                                        <th class="text-end">Rate</th>
+                                                        <th>Est. Payoff</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tblLoansPlan"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-lg-5">
+                                        <div class="p-3 border rounded h-100">
+                                            <div class="mb-2"><strong>Earliest payoff:</strong> <span id="loanEarliest">—</span></div>
+                                            <div class="mb-2"><strong>All loans cleared:</strong> <span id="loanLatest">—</span></div>
+                                            <div class="mb-2"><strong>Freed EMI total:</strong> <span id="loanFreedEmi">₹0</span> / month</div>
+                                            <hr/>
+                                            <div class="mb-2"><strong>Invest after clearance:</strong> <span id="loanInvestAll">₹0</span></div>
+                                            <div class="small text-muted" id="loanInvestAllDetail"></div>
+                                            <div class="mb-2 mt-3"><strong>Staggered invest plan:</strong> <span id="loanInvestStaggered">₹0</span></div>
+                                            <div class="small text-muted" id="loanInvestStaggeredDetail"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

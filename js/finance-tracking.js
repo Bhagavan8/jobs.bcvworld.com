@@ -36,6 +36,7 @@ let __trxCurrentList = [];
 let __ccPage = 1;
 const __ccPageSize = 5;
 let __ccCurrentList = [];
+let __selectedLoanForPartPay = null;
 
 async function addUniqueRecord(uniqueKey, data) {
     try {
@@ -100,6 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ccForm) ccForm.addEventListener('submit', handleCreditCardSubmit);
         const ccTxnForm = document.getElementById('creditCardTransactionForm');
         if (ccTxnForm) ccTxnForm.addEventListener('submit', handleCreditCardTransactionSubmit);
+        const partPayForm = document.getElementById('partPayForm');
+        if (partPayForm) partPayForm.addEventListener('submit', handlePartPaymentSubmit);
         const ccFilterRadios = document.querySelectorAll('input[name="ccFilterType"]');
         ccFilterRadios.forEach(r => r.addEventListener('change', () => { __ccPage = 1; renderCreditCardTransactions(creditCardTransactions); }));
         const ccFilterCard = document.getElementById('ccFilterCard');
@@ -1519,13 +1522,22 @@ function renderLoans(list) {
                      <small class="text-muted fw-medium">
                         <i class="bi bi-clock-history"></i> Next Due: ${l.emiDate}th
                      </small>
-                     <button class="btn btn-link btn-sm text-danger p-0 text-decoration-none" onclick="deleteLoan('${l.id}')">
-                        <small><i class="bi bi-trash"></i> Remove</small>
-                     </button>
+                     <div class="d-flex gap-3">
+                        <button class="btn btn-link btn-sm p-0 text-decoration-none" data-part-pay data-loan-id="${l.id}">
+                            <small><i class="bi bi-cash-coin"></i> Part Pay</small>
+                        </button>
+                        <button class="btn btn-link btn-sm text-danger p-0 text-decoration-none" onclick="deleteLoan('${l.id}')">
+                           <small><i class="bi bi-trash"></i> Remove</small>
+                        </button>
+                     </div>
                 </div>
             </div>
         `;
     }).join('');
+    // Bind part-pay click
+    container.querySelectorAll('[data-part-pay]').forEach(btn => {
+        btn.addEventListener('click', () => openPartPayModal(btn.getAttribute('data-loan-id')));
+    });
 }
 
 function renderInvestments(list) {
@@ -2031,5 +2043,59 @@ async function handleLogout(e) {
         window.location.href = 'login.html';
     } catch (error) {
         console.error('Error signing out:', error);
+    }
+}
+
+// Part Payment Support
+function openPartPayModal(loanId) {
+    __selectedLoanForPartPay = loans.find(l => l.id === loanId) || null;
+    const amtEl = document.getElementById('partPayAmount');
+    const dateEl = document.getElementById('partPayDate');
+    if (amtEl) amtEl.value = '';
+    if (dateEl) dateEl.valueAsDate = new Date();
+    const modalEl = document.getElementById('partPayModal');
+    if (modalEl && window.bootstrap) {
+        const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+
+async function handlePartPaymentSubmit(e) {
+    e.preventDefault();
+    if (!__selectedLoanForPartPay) return;
+    const amtEl = document.getElementById('partPayAmount');
+    const dateEl = document.getElementById('partPayDate');
+    const amount = parseFloat(amtEl.value) || 0;
+    const dateStr = dateEl.value;
+    if (amount <= 0 || !dateStr) return;
+    const loan = __selectedLoanForPartPay;
+    try {
+        await addDoc(collection(db, 'financialRecords'), {
+            type: 'expense',
+            amount: amount,
+            category: 'loan',
+            date: dateStr,
+            description: `Part Payment: ${loan.name}`,
+            timestamp: serverTimestamp(),
+            createdBy: currentUser.uid,
+            isPartPayment: true,
+            loanId: loan.id
+        });
+        const newBalance = Math.max(0, (loan.remainingBalance || 0) - amount);
+        const newPrincipalPaid = (loan.totalPrincipalPaid || 0) + amount;
+        const status = newBalance <= 0 ? 'completed' : loan.status || 'active';
+        await updateDoc(doc(db, 'financialLoans', loan.id), {
+            remainingBalance: newBalance,
+            totalPrincipalPaid: newPrincipalPaid,
+            status
+        });
+        const modalEl = document.getElementById('partPayModal');
+        if (modalEl && window.bootstrap) {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.hide();
+        }
+    } catch (err) {
+        console.error('Part payment failed', err);
+        alert('Failed to record part payment: ' + err.message);
     }
 }
