@@ -1349,26 +1349,32 @@ function updateDashboard() {
     
     // 1. Salary Stat: Show Configured Monthly Salary OR Actual Salary Received
     let configuredSalary = 0;
-    recurringItems.forEach(item => {
-        if (item.active && item.type === 'income') {
-            configuredSalary += item.amount;
-        }
-    });
+    let recurringIncomeItems = recurringItems.filter(r => r.active && r.type === 'income');
+    const namedSalarySum = recurringIncomeItems
+        .filter(r => (r.name || '').toLowerCase().includes('salary'))
+        .reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+    if (namedSalarySum > 0) {
+        configuredSalary = namedSalarySum;
+    } else if (recurringIncomeItems.length === 1) {
+        configuredSalary = parseFloat(recurringIncomeItems[0].amount) || 0;
+    }
     
     // Calculate actual received salary this month
     let salaryReceivedThisMonth = 0;
     transactions.forEach(t => {
-        if (t.type === 'income' && (t.category === 'salary' || t.isRecurring || (t.description && t.description.toLowerCase().includes('salary')))) {
-            const tDate = new Date(t.date);
-            if (tDate >= startOfMonth) {
-                salaryReceivedThisMonth += parseFloat(t.amount);
-            }
-        }
+        if (t.type !== 'income') return;
+        const cat = (t.category || '').toLowerCase();
+        const desc = (t.description || '').toLowerCase();
+        if (!(cat === 'salary' || desc.includes('salary'))) return;
+        const tDate = new Date(t.date);
+        if (tDate >= startOfMonth) salaryReceivedThisMonth += parseFloat(t.amount) || 0;
     });
     
     // If user hasn't set up recurring salary, show the actual salary received as the stat
     const displaySalary = configuredSalary > 0 ? configuredSalary : salaryReceivedThisMonth;
     document.getElementById('statSalary').textContent = formatCurrency(displaySalary);
+    const tms = document.getElementById('thisMonthSalary');
+    if (tms) tms.textContent = formatCurrency(displaySalary);
     
     // Progress Bar
     let salaryProgress = 0;

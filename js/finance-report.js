@@ -10,6 +10,7 @@ let subscriptions = [];
 let websiteTransactions = [];
 let creditCards = [];
 let creditCardTransactions = [];
+let recurringItems = [];
 let currentUser = null;
 
 const charts = {};
@@ -92,6 +93,10 @@ function initializeData() {
     });
     onSnapshot(collection(db, 'websiteTransactions'), (snap) => {
         websiteTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        calculateAndRender();
+    });
+    onSnapshot(collection(db, 'financialRecurring'), (snap) => {
+        recurringItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         calculateAndRender();
     });
     onSnapshot(collection(db, 'financialCreditCards'), (snap) => {
@@ -208,6 +213,29 @@ function calculateAndRender() {
     document.getElementById('rptCreditOutstanding').textContent = formatCurrency(creditOutstanding);
     document.getElementById('rptLoansOutstanding').textContent = formatCurrency(loansOutstanding);
     document.getElementById('rptInvestmentsValue').textContent = formatCurrency(investmentsValue);
+    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    let monthlySalaryActual = 0;
+    transactions.forEach(t => {
+        if (t.type !== 'income') return;
+        const desc = (t.description || '').toLowerCase();
+        const cat = (t.category || '').toLowerCase();
+        const d = new Date(t.date);
+        if (d >= thisMonth && (cat === 'salary' || desc.includes('salary'))) {
+            monthlySalaryActual += parseFloat(t.amount) || 0;
+        }
+    });
+    let configuredSalary = 0;
+    if (recurringItems.length) {
+        const activeIncome = recurringItems.filter(r => r.active && r.type === 'income');
+        const namedSalary = activeIncome
+            .filter(r => (r.name||'').toLowerCase().includes('salary'))
+            .reduce((s,r)=> s + (parseFloat(r.amount)||0), 0);
+        if (namedSalary > 0) configuredSalary = namedSalary;
+        else if (activeIncome.length === 1) configuredSalary = parseFloat(activeIncome[0].amount)||0;
+    }
+    const monthlySalary = configuredSalary > 0 ? configuredSalary : monthlySalaryActual;
+    const msEl = document.getElementById('rptMonthlySalary');
+    if (msEl) msEl.textContent = formatCurrency(monthlySalary);
 
     const incomeData = labels.map(l => incomeByMonth[l] || 0);
     const spendData = labels.map(l => spendByMonth[l] || 0);

@@ -17,6 +17,7 @@ let subscriptions = [];
 let websiteTransactions = [];
 let creditCards = [];
 let creditCardTransactions = [];
+let recurringItems = [];
 let currentUser = null;
 
 // Format currency
@@ -127,6 +128,10 @@ function initializeData() {
     // 6. Website Transactions
     onSnapshot(collection(db, 'websiteTransactions'), (snap) => {
         websiteTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        calculateAll();
+    });
+    onSnapshot(collection(db, 'financialRecurring'), (snap) => {
+        recurringItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         calculateAll();
     });
 
@@ -353,4 +358,27 @@ function calculateAll() {
     // Website Finance
     document.getElementById('totalWebsiteRevenue').textContent = formatCurrency(totalWebsiteRevenue);
     document.getElementById('totalWebsiteExpenses').textContent = formatCurrency(totalWebsiteExpenses);
+    // Monthly Salary
+    let monthlySalaryActual = 0;
+    transactions.forEach(t => {
+        if (t.type !== 'income') return;
+        const desc = (t.description || '').toLowerCase();
+        const cat = (t.category || '').toLowerCase();
+        const d = new Date(t.date);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear && (cat === 'salary' || desc.includes('salary'))) {
+            monthlySalaryActual += parseFloat(t.amount) || 0;
+        }
+    });
+    let configuredSalary = 0;
+    if (recurringItems.length) {
+        const activeIncome = recurringItems.filter(r => r.active && r.type === 'income');
+        const namedSalary = activeIncome
+            .filter(r => (r.name||'').toLowerCase().includes('salary'))
+            .reduce((s,r)=> s + (parseFloat(r.amount)||0), 0);
+        if (namedSalary > 0) configuredSalary = namedSalary;
+        else if (activeIncome.length === 1) configuredSalary = parseFloat(activeIncome[0].amount)||0;
+    }
+    const monthlySalary = configuredSalary > 0 ? configuredSalary : monthlySalaryActual;
+    const salEl = document.getElementById('totalMonthlySalary');
+    if (salEl) salEl.textContent = formatCurrency(monthlySalary);
 }
