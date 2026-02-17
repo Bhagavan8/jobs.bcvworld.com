@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Plan & To‑Do</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .page-header { display:flex; align-items:center; justify-content:space-between; }
+        .kanban { display:grid; gap:1rem; grid-template-columns: repeat(12, 1fr); }
+        .kanban-col { grid-column: span 6; }
+        @media (min-width: 992px) {
+            .kanban-col { grid-column: span 3; }
+        }
+        .card-header .badge { font-weight: 600; }
+        .task-item { display:flex; align-items:center; gap:.5rem; justify-content:space-between; padding:.5rem .25rem; border-bottom:1px dashed #e9ecef; }
+        .task-title { font-weight:600; }
+        .task-meta { font-size:.8rem; opacity:.75; }
+        .habit-btn.active { background: linear-gradient(45deg,#0ea5e9,#22c55e); color:#fff; }
+        .diet-badge { font-size:.8rem; }
+        .top-actions { display:flex; gap:.5rem; flex-wrap: nowrap; align-items:center; }
+        .top-actions .action-btn { flex: 0 0 132px; height: 36px; display:inline-flex; align-items:center; justify-content:center; white-space: nowrap; line-height: 1.2; }
+    </style>
+</head>
+<body class="admin-dashboard">
+    <div class="wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-wrapper">
+                    <i class="bi bi-briefcase-fill logo-icon"></i>
+                    <h1 class="logo-text">Finance<span> & Personal</span></h1>
+                </div>
+                <button class="sidebar-toggle d-lg-none">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="sidebar-menu">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#finance-collapse">
+                            <i class="bi bi-bank"></i>
+                            <span>Finance</span>
+                            <i class="bi bi-chevron-down dropdown-arrow"></i>
+                        </a>
+                        <div class="collapse" id="finance-collapse">
+                            <ul class="nav flex-column sub-menu">
+                                <li class="nav-item"><a class="nav-link" href="total-finance.html">Total Overview</a></li>
+                                <li class="nav-item"><a class="nav-link" href="finance-tracking.html">Financial Tracking</a></li>
+                                <li class="nav-item"><a class="nav-link" href="finance-report.html">Comprehensive Report</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="study-plan.html">
+                            <i class="bi bi-journal-check"></i>
+                            <span>Study Plan & To‑Do</span>
+                            <span class="badge bg-primary rounded-pill ms-auto">New</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+        <main class="main-content">
+            <nav class="top-nav">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggle d-lg-none me-3">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h4 class="page-title mb-0">Study Plan & To‑Do</h4>
+                </div>
+                <div class="top-nav-actions">
+                    <div class="user-menu" id="userMenuDropdown"></div>
+                </div>
+            </nav>
+            <div class="content-wrapper">
+                <div class="page-header mb-4">
+                    <div>
+                        <h3 class="mb-1">Study Plan & To‑Do</h3>
+                        <small class="text-muted">Interview prep • Office • Travel • Breaks • Workout • Sleep • Health & diet • Personal</small>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn btn-sm btn-primary action-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                            <i class="bi bi-plus-lg me-1"></i>Add Task
+                        </button>
+                        <button class="btn btn-sm btn-outline-info action-btn" data-bs-toggle="modal" data-bs-target="#logTimeModal">
+                            <i class="bi bi-stopwatch me-1"></i>Log Time
+                        </button>
+                        <a class="btn btn-sm btn-outline-secondary action-btn" href="index.html" role="button">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </div>
+                </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="mb-0">Today Focus</h6>
+                            <span class="badge bg-primary" id="todayCount">0 Tasks</span>
+                        </div>
+                        <div class="progress mb-2" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" id="todayProgress" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted" id="todaySummary">0/0 completed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="mb-0">Study & Interview</h6>
+                            <span class="badge bg-success" id="studyCount">0 Tasks</span>
+                        </div>
+                        <ul class="list-unstyled mb-0" id="studyQuickList"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="mb-0">Wellness</h6>
+                            <span>
+                                <span class="badge rounded-pill text-bg-success diet-badge" id="dietScore">Diet: 0/3</span>
+                                <span class="badge rounded-pill text-bg-info diet-badge" id="workoutScore">Workout: 0/1</span>
+                            </span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-success w-100 habit-btn" data-habit="breakfast">Breakfast</button>
+                            <button class="btn btn-outline-success w-100 habit-btn" data-habit="lunch">Lunch</button>
+                            <button class="btn btn-outline-success w-100 habit-btn" data-habit="dinner">Dinner</button>
+                            <button class="btn btn-outline-info w-100 habit-btn" data-habit="workout">Workout</button>
+                        </div>
+                        <small class="text-muted d-block mt-2" id="habitDate"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <div class="row g-4 mb-3">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-secondary">Play</span><small class="text-muted">Start</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-secondary">Stop</span><small class="text-muted">End & save</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-success">✔</span><small class="text-muted">Mark complete (logs planned time)</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-warning">DSA</span><small class="text-muted">Category badge</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-danger">Diet</span><small class="text-muted">Meals</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-secondary">Sleep</span><small class="text-muted">Sleep/Rest</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-success">Family</span><small class="text-muted">Family time</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        <div class="kanban mb-4">
+            <div class="kanban-col">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">Backlog</span>
+                        <span class="badge text-bg-secondary" id="countBacklog">0</span>
+                    </div>
+                    <div class="card-body" id="listBacklog"></div>
+                </div>
+            </div>
+            <div class="kanban-col">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">This Week</span>
+                        <span class="badge text-bg-primary" id="countWeek">0</span>
+                    </div>
+                    <div class="card-body" id="listWeek"></div>
+                </div>
+            </div>
+            <div class="kanban-col">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">In Progress</span>
+                        <span class="badge text-bg-warning" id="countInProgress">0</span>
+                    </div>
+                    <div class="card-body" id="listInProgress"></div>
+                </div>
+            </div>
+            <div class="kanban-col">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">Completed</span>
+                        <span class="badge text-bg-success" id="countCompleted">0</span>
+                    </div>
+                    <div class="card-body" id="listCompleted"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-stretch">
+            <div class="col-12 col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">Today's Timeline</span>
+                        <span class="badge text-bg-info" id="currentBlockLabel">Now</span>
+                    </div>
+                    <div class="list-group list-group-flush" id="todayTimeline"></div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                        <span class="fw-bold">Weekly Schedule</span>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-danger" id="resetScheduleBtn">Reset Schedule</button>
+                            <button class="btn btn-sm btn-outline-primary" id="applyScheduleBtn">Apply Recommended Schedule</button>
+                        </div>
+                    </div>
+                    <div class="accordion" id="weeklyAccordion">
+                        <div class="p-3 text-muted" id="scheduleEmptyState">No schedule yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <span class="fw-bold">Today by Category</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="todayPie" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <span class="fw-bold">Today vs Yesterday</span>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="todayYesterdayBar" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <span class="fw-bold">KPIs</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2"><span>Completed Blocks</span><span class="fw-bold" id="kpiCompleted">0</span></div>
+                        <div class="d-flex justify-content-between mb-2"><span>Missed Blocks</span><span class="fw-bold" id="kpiMissed">0</span></div>
+                        <div class="d-flex justify-content-between mb-2"><span>Focus Minutes</span><span class="fw-bold" id="kpiFocus">0</span></div>
+                        <div class="d-flex justify-content-between"><span>Mobile Minutes</span><span class="fw-bold" id="kpiMobile">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <span class="fw-bold">Tomorrow Plan Suggestions</span>
+                    </div>
+                    <div class="card-body" id="tomorrowList">
+                        <div class="text-muted">No suggestions yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="addTaskModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="taskForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="taskTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="taskCategory" required>
+                                <option value="Interview Prep">Interview Prep</option>
+                                <option value="DSA">DSA</option>
+                                <option value="System Design">System Design</option>
+                                <option value="Coding Practice">Coding Practice</option>
+                                <option value="Projects">Projects</option>
+                                <option value="Resume/Portfolio">Resume/Portfolio</option>
+                                <option value="Mock Interview">Mock Interview</option>
+                                <option value="Office Work">Office Work</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Workout">Workout</option>
+                                <option value="Diet">Diet</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Priority</label>
+                                <select class="form-select" id="taskPriority">
+                                    <option>Low</option>
+                                    <option selected>Medium</option>
+                                    <option>High</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="taskDueDate">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estimate (minutes)</label>
+                            <input type="number" class="form-control" id="taskEstimate" min="0" step="15" value="60">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="logTimeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Log Time</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="logTimeForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="logTitle" placeholder="e.g., DSA Practice" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="logType" required>
+                                <option>Study</option>
+                                <option>DSA</option>
+                                <option>System Design</option>
+                                <option>Coding</option>
+                                <option>Office</option>
+                                <option>Break</option>
+                                <option>Travel</option>
+                                <option>Sleep</option>
+                                <option>Diet</option>
+                                <option>Workout</option>
+                                <option>Personal</option>
+                                <option>Family</option>
+                                <option>Mobile</option>
+                                <option>New Skill</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Start</label>
+                                <input type="time" class="form-control" id="logStart" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">End</label>
+                                <input type="time" class="form-control" id="logEnd" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/study-plan.js"></script>
+</body>
+</html>
