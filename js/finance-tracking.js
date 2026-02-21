@@ -103,6 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ccTxnForm) ccTxnForm.addEventListener('submit', handleCreditCardTransactionSubmit);
         const partPayForm = document.getElementById('partPayForm');
         if (partPayForm) partPayForm.addEventListener('submit', handlePartPaymentSubmit);
+        const closedLoanForm = document.getElementById('closedLoanForm');
+        if (closedLoanForm) closedLoanForm.addEventListener('submit', handleClosedLoanSubmit);
         const ccFilterRadios = document.querySelectorAll('input[name="ccFilterType"]');
         ccFilterRadios.forEach(r => r.addEventListener('change', () => { __ccPage = 1; renderCreditCardTransactions(creditCardTransactions); }));
         const ccFilterCard = document.getElementById('ccFilterCard');
@@ -307,6 +309,8 @@ function initializeFinance() {
         updateDashboard();
         // Only render active loans in the sidebar list
         renderLoans(loans.filter(l => l.status === 'active' && l.remainingBalance > 0));
+        // Render closed loans separately
+        renderClosedLoans(loans.filter(l => (l.status === 'completed') || l.remainingBalance <= 0));
     }, (error) => console.error("Error fetching loans:", error));
 
     // 3. Investments
@@ -550,6 +554,50 @@ async function handleLoanSubmit(e) {
         btn.disabled = false;
         btn.innerHTML = originalText;
         __submitting.loan = false;
+    }
+}
+
+async function handleClosedLoanSubmit(e) {
+    e.preventDefault();
+    if (__submitting.closedLoan) return;
+    __submitting.closedLoan = true;
+    const btn = supposeBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    try {
+        const name = document.getElementById('closedLoanName').value;
+        const principal = parseFloat(document.getElementById('closedLoanPrincipal').value) || 0;
+        const interest = parseFloat(document.getElementById('closedLoanInterest').value) || 0;
+        const startDate = document.getElementById('closedLoanStartDate').value || '';
+        const closedDate = document.getElementById('closedLoanClosedDate').value;
+        const roi = parseFloat(document.getElementById('closedLoanROI').value) || 0;
+        const data = {
+            name: name,
+            totalAmount: principal,
+            remainingBalance: 0,
+            status: 'completed',
+            totalInterestPaid: interest,
+            totalPrincipalPaid: principal,
+            interestRate: roi,
+            emiAmount: 0,
+            emiDate: 1,
+            startDate: startDate,
+            closedDate: closedDate,
+            createdAt: serverTimestamp(),
+            createdBy: currentUser.uid
+        };
+        await addDoc(collection(db, 'financialLoans'), data);
+        e.target.reset();
+        bootstrap.Modal.getInstance(document.getElementById('addClosedLoanModal')).hide();
+        showToast('Closed loan recorded');
+    } catch (err) {
+        console.error('Error saving closed loan:', err);
+        showToast('Error saving closed loan', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        __submitting.closedLoan = false;
     }
 }
 
@@ -1546,6 +1594,47 @@ function renderLoans(list) {
     });
 }
 
+function renderClosedLoans(list) {
+    const container = document.getElementById('closedLoansList');
+    const badge = document.getElementById('closedLoansCount');
+    if (!container) return;
+    const count = list.length;
+    if (badge) badge.textContent = String(count);
+    if (count === 0) {
+        container.innerHTML = '<div class="text-center py-3 text-muted"><small>No closed loans</small></div>';
+        return;
+    }
+    container.innerHTML = list.map(l => {
+        const start = l.startDate ? new Date(l.startDate) : null;
+        const closed = l.closedDate ? new Date(l.closedDate) : null;
+        const principal = l.totalAmount || 0;
+        const interestPaid = l.totalInterestPaid || 0;
+        const principalPaid = l.totalPrincipalPaid !== undefined ? l.totalPrincipalPaid : principal;
+        const endLabel = closed ? closed.toLocaleDateString() : '—';
+        return `
+            <div class="list-group-item p-3 border-bottom bg-white">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1 fw-bold"><i class="bi bi-check2-square text-success me-2"></i>${l.name || 'Loan'}</h6>
+                        <small class="text-muted">${start ? start.toLocaleDateString() : '—'} → ${endLabel}</small>
+                    </div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Closed</span>
+                </div>
+                <div class="row small mt-2">
+                    <div class="col-6">
+                        <div class="text-muted text-uppercase" style="font-size:.7rem;">Principal Paid</div>
+                        <div class="fw-bold">${formatCurrency(principalPaid)}</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="text-muted text-uppercase" style="font-size:.7rem;">Interest Paid</div>
+                        <div class="fw-bold text-warning">${formatCurrency(interestPaid)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 function renderInvestments(list) {
     const container = document.getElementById('investmentsList');
     if (list.length === 0) {
@@ -1725,13 +1814,17 @@ async function checkLoanEMIs() {
                 const currentInterestPaid = loan.totalInterestPaid || 0;
                 const currentPrincipalPaid = loan.totalPrincipalPaid || 0;
                 
-                await updateDoc(doc(db, 'financialLoans', loan.id), {
+                const updateData = {
                     remainingBalance: newBalance,
                     lastEmiPaidMonth: currentPeriod,
                     status: status,
                     totalInterestPaid: currentInterestPaid + interestForMonth,
                     totalPrincipalPaid: currentPrincipalPaid + principalForMonth
-                });
+                };
+                if (status === 'completed' && !loan.closedDate) {
+                    updateData.closedDate = serverTimestamp();
+                }
+                await updateDoc(doc(db, 'financialLoans', loan.id), updateData);
 
                 showToast(`EMI deducted for ${loan.name}`);
             } catch (err) {

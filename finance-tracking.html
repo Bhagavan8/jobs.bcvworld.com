@@ -528,9 +528,14 @@
                                 <div class="card shadow-sm h-100">
                                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-bank me-2"></i>Active Loans</h5>
-                                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLoanModal">
-                                            <i class="bi bi-plus-lg"></i> New Loan
-                                        </button>
+                                        <div class="d-flex align-items-center">
+                                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLoanModal">
+                                                <i class="bi bi-plus-lg"></i> New Loan
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#addClosedLoanModal">
+                                                <i class="bi bi-archive"></i> Add Closed
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="card-body p-0">
                                         <div id="loansList" class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
@@ -538,6 +543,17 @@
                                         </div>
                                     </div>
                                 </div>
+                        <div class="card shadow-sm h-100 mt-4">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-archive me-2"></i>Closed Loans</h5>
+                                <span class="badge bg-secondary" id="closedLoansCount">0</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="closedLoansList" class="list-group list-group-flush" style="max-height: 220px; overflow-y: auto;">
+                                    <!-- Closed loans loaded here -->
+                                </div>
+                            </div>
+                        </div>
                             </div>
                             
                             <!-- Investments -->
@@ -838,6 +854,51 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Add Closed Loan Modal -->
+    <div class="modal fade" id="addClosedLoanModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-secondary">Add Closed Loan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="closedLoanForm">
+                        <div class="mb-3">
+                            <label class="form-label">Loan Name / Bank</label>
+                            <input type="text" class="form-control" id="closedLoanName" required placeholder="e.g. Car Loan (HDFC)">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Principal Paid (₹)</label>
+                            <input type="number" class="form-control" id="closedLoanPrincipal" required min="0" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Interest Paid (₹)</label>
+                            <input type="number" class="form-control" id="closedLoanInterest" min="0" step="0.01" value="0">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="closedLoanStartDate">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Closed Date</label>
+                                <input type="date" class="form-control" id="closedLoanClosedDate" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Rate of Interest (%)</label>
+                            <input type="number" class="form-control" id="closedLoanROI" min="0" step="0.01" placeholder="optional">
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-secondary">Add Closed Loan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Add Transaction Modal -->

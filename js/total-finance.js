@@ -255,9 +255,17 @@ function calculateAll() {
     });
 
     // 4. Loans
+    let closedLoansPrincipal = 0;
+    let closedLoansCount = 0;
     loans.forEach(l => {
+        const remaining = parseFloat(l.remainingBalance) || 0;
+        const isClosed = (l.status && l.status.toLowerCase() === 'completed') || remaining <= 0;
         if (l.status === 'active') {
-            totalLoanBalance += (parseFloat(l.remainingBalance) || 0);
+            totalLoanBalance += remaining;
+        }
+        if (isClosed) {
+            closedLoansCount += 1;
+            closedLoansPrincipal += (parseFloat(l.totalAmount) || 0);
         }
     });
 
@@ -354,6 +362,10 @@ function calculateAll() {
     document.getElementById('totalRecurring').textContent = formatCurrency(totalRecurringMonthly);
     const ccOutEl = document.getElementById('totalCreditOutstanding');
     if (ccOutEl) ccOutEl.textContent = formatCurrency(totalCreditOutstanding);
+    const closedPrinEl = document.getElementById('closedLoansPrincipal');
+    if (closedPrinEl) closedPrinEl.textContent = formatCurrency(closedLoansPrincipal);
+    const closedCntEl = document.getElementById('closedLoansCount');
+    if (closedCntEl) closedCntEl.textContent = String(closedLoansCount);
 
     // Website Finance
     document.getElementById('totalWebsiteRevenue').textContent = formatCurrency(totalWebsiteRevenue);

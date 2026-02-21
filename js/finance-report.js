@@ -283,6 +283,7 @@ function calculateAndRender() {
     renderTables();
     renderTopCategoriesAndInsights();
     renderLoanPlan();
+    renderClosedLoans();
 
     // Time range spends
     let weekSpend = 0, monthSpend = 0, yearSpend = 0;
@@ -635,6 +636,25 @@ function renderLoanPlan() {
     if (elInvestStagDetail) elInvestStagDetail.innerHTML = parts.length ? parts.join('<br/>') : 'No EMIs found to stagger.';
 }
 
+function renderClosedLoans() {
+    const tbody = document.getElementById('tblClosedLoans');
+    if (!tbody) return;
+    const closed = loans.filter(l => ((l.status||'').toLowerCase()==='completed') || (parseFloat(l.remainingBalance||0) <= 0));
+    const rows = [];
+    closed.forEach(l => {
+        const name = l.name || l.loanName || 'Loan';
+        const principalPaid = l.totalPrincipalPaid !== undefined ? (parseFloat(l.totalPrincipalPaid)||0) : (parseFloat(l.totalAmount)||0);
+        const interestPaid = parseFloat(l.totalInterestPaid||0) || 0;
+        const closedOn = l.closedDate ? new Date(l.closedDate).toISOString().slice(0,10) : (l.lastEmiPaidMonth ? l.lastEmiPaidMonth : '—');
+        rows.push(`<tr>
+            <td>${name}</td>
+            <td class="text-end">${formatCurrency(principalPaid)}</td>
+            <td class="text-end">${formatCurrency(interestPaid)}</td>
+            <td>${closedOn}</td>
+        </tr>`);
+    });
+    tbody.innerHTML = rows.join('') || `<tr><td colspan="4" class="text-muted">No closed loans yet.</td></tr>`;
+}
 function averageMonthlyAmountForLoan(loanId, loanName) {
     const byMonth = {};
     transactions.forEach(t => {
