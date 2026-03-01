@@ -105,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (partPayForm) partPayForm.addEventListener('submit', handlePartPaymentSubmit);
         const closedLoanForm = document.getElementById('closedLoanForm');
         if (closedLoanForm) closedLoanForm.addEventListener('submit', handleClosedLoanSubmit);
+        const editInvForm = document.getElementById('editInvestmentForm');
+        if (editInvForm) editInvForm.addEventListener('submit', handleEditInvestmentSubmit);
+        const editLoanForm = document.getElementById('editLoanForm');
+        if (editLoanForm) editLoanForm.addEventListener('submit', handleEditLoanSubmit);
         const ccFilterRadios = document.querySelectorAll('input[name="ccFilterType"]');
         ccFilterRadios.forEach(r => r.addEventListener('change', () => { __ccPage = 1; renderCreditCardTransactions(creditCardTransactions); }));
         const ccFilterCard = document.getElementById('ccFilterCard');
@@ -601,6 +605,45 @@ async function handleClosedLoanSubmit(e) {
     }
 }
 
+function openEditLoanModal(id) {
+    const loan = loans.find(x => x.id === id);
+    if (!loan) return;
+    document.getElementById('editLoanId').value = id;
+    document.getElementById('editLoanName').value = loan.name || '';
+    document.getElementById('editLoanEMI').value = loan.emiAmount || 0;
+    document.getElementById('editLoanEMIDate').value = loan.emiDate || '';
+    const modal = new bootstrap.Modal(document.getElementById('editLoanModal'));
+    modal.show();
+}
+
+async function handleEditLoanSubmit(e) {
+    e.preventDefault();
+    if (__submitting.loanEdit) return;
+    __submitting.loanEdit = true;
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    try {
+        const id = document.getElementById('editLoanId').value;
+        const name = document.getElementById('editLoanName').value;
+        const emiAmountStr = document.getElementById('editLoanEMI').value;
+        const emiDateStr = document.getElementById('editLoanEMIDate').value;
+        const updates = { name, lastUpdated: serverTimestamp() };
+        if (emiAmountStr !== '') updates.emiAmount = parseFloat(emiAmountStr) || 0;
+        if (emiDateStr !== '') updates.emiDate = parseInt(emiDateStr) || 1;
+        await updateDoc(doc(db, 'financialLoans', id), updates);
+        bootstrap.Modal.getInstance(document.getElementById('editLoanModal')).hide();
+        showToast('Loan updated');
+    } catch (err) {
+        console.error('Error updating loan:', err);
+        showToast('Error updating loan', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        __submitting.loanEdit = false;
+    }
+}
 function toggleInvFields() {
     const type = document.getElementById('invType').value;
     const roiGroup = document.getElementById('invRoiGroup');
@@ -634,6 +677,8 @@ async function handleInvestmentSubmit(e) {
 
     const type = document.getElementById('invType').value;
     const sipAmount = parseFloat(document.getElementById('invMonthlyAmount').value) || 0;
+    const sipActive = document.getElementById('invSipActive').checked;
+    const sipStartFrom = document.getElementById('invSipStartFrom').value || 'this_month';
     
     const data = {
         name: document.getElementById('invName').value,
@@ -644,7 +689,9 @@ async function handleInvestmentSubmit(e) {
         startDate: document.getElementById('invStartDate').value,
         sipAmount: sipAmount,
         sipDate: parseInt(document.getElementById('invSipDate').value) || 1,
-        lastSipPaidMonth: null, // Initialize
+        sipActive: sipActive,
+        sipStartFrom: sipStartFrom,
+        lastSipPaidMonth: null,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
         lastUpdated: serverTimestamp()
@@ -668,6 +715,10 @@ async function handleInvestmentSubmit(e) {
     try {
         // Add lastInterestPaidYear to data
         data.lastInterestPaidYear = currentFinYear;
+        if (sipAmount > 0 && sipStartFrom === 'next_month') {
+            const now = new Date();
+            data.lastSipPaidMonth = `${now.getFullYear()}-${now.getMonth()}`;
+        }
 
         await addDoc(collection(db, 'financialInvestments'), data);
         e.target.reset();
@@ -683,6 +734,86 @@ async function handleInvestmentSubmit(e) {
     }
 }
 
+function openEditInvestmentModal(id) {
+    const inv = investments.find(x => x.id === id);
+    if (!inv) return;
+    document.getElementById('editInvId').value = id;
+    document.getElementById('editInvStartDate').value = inv.startDate || '';
+    document.getElementById('editInvMonthlyAmount').value = inv.sipAmount || 0;
+    document.getElementById('editInvSipDate').value = inv.sipDate || 1;
+    document.getElementById('editInvSipActive').checked = inv.sipActive !== false;
+    document.getElementById('editInvSipStartFrom').value = inv.sipStartFrom || 'this_month';
+    const modalEl = document.getElementById('editInvestmentModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+async function handleEditInvestmentSubmit(e) {
+    e.preventDefault();
+    if (__submitting.investmentEdit) return;
+    __submitting.investmentEdit = true;
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    try {
+        const id = document.getElementById('editInvId').value;
+        const sipAmount = parseFloat(document.getElementById('editInvMonthlyAmount').value) || 0;
+        const sipDate = parseInt(document.getElementById('editInvSipDate').value) || 1;
+        const sipActive = document.getElementById('editInvSipActive').checked;
+        const sipStartFrom = document.getElementById('editInvSipStartFrom').value || 'this_month';
+        const startDate = document.getElementById('editInvStartDate').value || '';
+        const today = new Date();
+        const currentPeriod = `${today.getFullYear()}-${today.getMonth()}`;
+        const updates = {
+            sipAmount,
+            sipDate,
+            sipActive,
+            sipStartFrom,
+            startDate,
+            lastUpdated: serverTimestamp()
+        };
+        if (sipAmount > 0 && sipStartFrom === 'next_month') {
+            updates.lastSipPaidMonth = currentPeriod;
+        }
+        await updateDoc(doc(db, 'financialInvestments', id), updates);
+        // Immediate processing if requested for this month and due date passed
+        const inv = investments.find(x => x.id === id);
+        const lastPaid = inv?.lastSipPaidMonth;
+        const sipDuePassed = today.getDate() >= sipDate;
+        if (sipActive && sipAmount > 0 && sipStartFrom === 'this_month' && lastPaid !== currentPeriod) {
+            const uniqueKey = `sip_${id}_${currentPeriod}`;
+            await addUniqueRecord(uniqueKey, {
+                type: 'expense',
+                amount: sipAmount,
+                category: 'investment',
+                date: today.toISOString().split('T')[0],
+                description: `Auto-SIP: ${inv?.name || 'Investment'}`,
+                timestamp: serverTimestamp(),
+                createdBy: currentUser.uid,
+                isAutoSip: true,
+                investmentId: id,
+                period: currentPeriod
+            });
+            await cleanupDuplicateRecords('investmentId', id, currentPeriod, uniqueKey);
+            await updateDoc(doc(db, 'financialInvestments', id), {
+                investedAmount: (inv?.investedAmount || 0) + sipAmount,
+                currentValue: (inv?.currentValue || 0) + sipAmount,
+                lastSipPaidMonth: currentPeriod,
+                lastUpdated: serverTimestamp()
+            });
+        }
+        bootstrap.Modal.getInstance(document.getElementById('editInvestmentModal')).hide();
+        showToast('Investment updated');
+    } catch (err) {
+        console.error('Error updating investment:', err);
+        showToast('Error updating investment', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        __submitting.investmentEdit = false;
+    }
+}
 async function handleRecurringSubmit(e) {
     e.preventDefault();
     if (__submitting.recurring) return;
@@ -1176,8 +1307,10 @@ window.deleteInvestment = deleteInvestment;
 window.deleteRecurring = deleteRecurring;
 window.processRecurringNow = processRecurringNow;
 window.updateInvestmentValue = updateInvestmentValue;
+window.openEditInvestmentModal = openEditInvestmentModal;
 window.setInitialBalance = setInitialBalance;
 window.toggleInvFields = toggleInvFields;
+window.openEditLoanModal = openEditLoanModal;
 
 function updateDashboard() {
     let totalIncome = 0;
@@ -1330,7 +1463,12 @@ function updateDashboard() {
     
     let totalInvestedOutflow = 0;
     transactions.forEach(t => {
-        if (t.type === 'investment') totalInvestedOutflow += parseFloat(t.amount);
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'investment') {
+            totalInvestedOutflow += amt;
+        } else if (t.type === 'expense' && (t.category || '').toLowerCase() === 'investment') {
+            totalInvestedOutflow += amt;
+        }
     });
 
     // Current EMI Load = Total EMI recorded - Past Historical EMIs
@@ -1356,7 +1494,7 @@ function updateDashboard() {
     if (breakdownEl) {
         let bText = `Inc: ${formatCompact(totalIncome)} - Cash Exp: ${formatCompact(totalExpense)}`;
         if (totalCCExpense > 0) bText += ` - CC Exp: ${formatCompact(totalCCExpense)}`;
-        bText += ` - Loan: ${formatCompact(totalEMI)}`;
+        bText += ` - Loan: ${formatCompact(currentEmiLoad)}`;
         if (totalInvestedOutflow > 0) bText += ` - Inv: ${formatCompact(totalInvestedOutflow)}`;
         breakdownEl.innerHTML = bText;
     }
@@ -1577,6 +1715,9 @@ function renderLoans(list) {
                         <i class="bi bi-clock-history"></i> Next Due: ${l.emiDate}th
                      </small>
                      <div class="d-flex gap-3">
+                        <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="openEditLoanModal('${l.id}')">
+                            <small><i class="bi bi-pencil-square"></i> Edit</small>
+                        </button>
                         <button class="btn btn-link btn-sm p-0 text-decoration-none" data-part-pay data-loan-id="${l.id}">
                             <small><i class="bi bi-cash-coin"></i> Part Pay</small>
                         </button>
@@ -1642,6 +1783,19 @@ function renderInvestments(list) {
         return;
     }
     container.innerHTML = list.map(i => {
+        const typeMetaMap = {
+            stock: { label: 'Stock', icon: 'bi-graph-up' },
+            mutual_fund: { label: 'Mutual Fund', icon: 'bi-pie-chart' },
+            ppf: { label: 'PPF', icon: 'bi-piggy-bank' },
+            pf: { label: 'PF', icon: 'bi-piggy-bank' },
+            fd: { label: 'Fixed Deposit', icon: 'bi-safe' },
+            gold: { label: 'Gold/Silver', icon: 'bi-gem' },
+            real_estate: { label: 'Real Estate', icon: 'bi-house' },
+            crypto: { label: 'Crypto', icon: 'bi-currency-bitcoin' },
+            other: { label: 'Other', icon: 'bi-tag' }
+        };
+        const meta = typeMetaMap[i.type] || typeMetaMap.other;
+        const typeBadge = `<span class="badge bg-light text-dark border rounded-pill ms-2"><i class="bi ${meta.icon} me-1"></i>${meta.label}</span>`;
         const profit = i.currentValue - i.investedAmount;
         const profitPercent = i.investedAmount > 0 ? ((profit / i.investedAmount) * 100).toFixed(1) : 0;
         const isProfit = profit >= 0;
@@ -1654,10 +1808,13 @@ function renderInvestments(list) {
             <div class="list-group-item p-3 border-bottom">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div>
-                        <h6 class="mb-0 fw-bold">${i.name} <span class="badge bg-light text-dark border ms-2">${i.type}</span></h6>
+                        <h6 class="mb-0 fw-bold">${i.name} ${typeBadge}</h6>
                         ${i.startDate ? `<small class="text-muted" style="font-size: 0.75em;"><i class="bi bi-calendar3"></i> Since ${new Date(i.startDate).toLocaleDateString()}</small>` : ''}
                     </div>
-                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateInvestmentValue('${i.id}', ${i.currentValue})">Update Value</button>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateInvestmentValue('${i.id}', ${i.currentValue})">Update Value</button>
+                        <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditInvestmentModal('${i.id}')">Edit</button>
+                    </div>
                 </div>
                 
                 <div class="row g-2 mb-2">
@@ -1674,7 +1831,7 @@ function renderInvestments(list) {
                 ${(showRoi || i.sipAmount) ? `
                 <div class="d-flex gap-3 mb-2 small text-muted bg-light p-2 rounded">
                     ${showRoi ? `<span><strong>ROI:</strong> ${i.interestRate}%</span>` : ''}
-                    ${i.sipAmount ? `<span><strong>SIP:</strong> ${formatCurrency(i.sipAmount)} / mo</span>` : ''}
+                    ${i.sipAmount ? `<span><strong>SIP:</strong> ${formatCurrency(i.sipAmount)} / mo${i.sipActive===false?' • Paused':''}${i.sipStartFrom==='next_month'?' • Next start':''}</span>` : ''}
                 </div>
                 ` : ''}
 
@@ -1892,6 +2049,7 @@ async function checkInvestmentSIPs() {
     const currentPeriod = `${currentYear}-${currentMonth}`;
 
     for (const inv of investments) {
+        if (inv.sipActive === false) continue;
         if (!inv.sipAmount || inv.sipAmount <= 0) continue;
 
         // Check start date if exists

@@ -525,7 +525,7 @@
                         <div class="row mb-4">
                             <!-- Active Loans -->
                             <div class="col-12 col-lg-6 mb-4 mb-lg-0">
-                                <div class="card shadow-sm h-100">
+                                <div class="card shadow-sm">
                                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-bank me-2"></i>Active Loans</h5>
                                         <div class="d-flex align-items-center">
@@ -543,22 +543,11 @@
                                         </div>
                                     </div>
                                 </div>
-                        <div class="card shadow-sm h-100 mt-4">
-                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-archive me-2"></i>Closed Loans</h5>
-                                <span class="badge bg-secondary" id="closedLoansCount">0</span>
-                            </div>
-                            <div class="card-body p-0">
-                                <div id="closedLoansList" class="list-group list-group-flush" style="max-height: 220px; overflow-y: auto;">
-                                    <!-- Closed loans loaded here -->
-                                </div>
-                            </div>
-                        </div>
                             </div>
                             
                             <!-- Investments -->
                             <div class="col-12 col-lg-6">
-                                <div class="card shadow-sm h-100">
+                                <div class="card shadow-sm">
                                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0 fw-bold text-success"><i class="bi bi-graph-up-arrow me-2"></i>Investments</h5>
                                         <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addInvestmentModal">
@@ -571,6 +560,22 @@
                                         </div>
                                     </div>
                                 </div>
+                        </div>
+                    </div>
+                    <!-- Closed Loans Row (full width to avoid empty space beside investments) -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-archive me-2"></i>Closed Loans</h5>
+                                    <span class="badge bg-secondary" id="closedLoansCount">0</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div id="closedLoansList" class="list-group list-group-flush" style="max-height: 220px; overflow-y: auto;">
+                                        <!-- Closed loans loaded here -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1105,6 +1110,49 @@
         </div>
     </div>
 
+    <!-- Edit Loan Modal -->
+    <div class="modal fade" id="editLoanModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-primary">Edit Loan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editLoanForm">
+                        <input type="hidden" id="editLoanId">
+                        <div class="mb-3">
+                            <label class="form-label">Loan Name / Bank</label>
+                            <input type="text" class="form-control" id="editLoanName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Monthly EMI Amount (₹)</label>
+                                <input type="number" class="form-control" id="editLoanEMI" min="0" step="0.01">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">EMI Deduction Date</label>
+                                <select class="form-select" id="editLoanEMIDate">
+                                    <option value="">No change</option>
+                                    <option value="1">1st</option>
+                                    <option value="5">5th</option>
+                                    <option value="10">10th</option>
+                                    <option value="15">15th</option>
+                                    <option value="20">20th</option>
+                                    <option value="25">25th</option>
+                                    <option value="30">30th</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Part Payment Modal -->
     <div class="modal fade" id="partPayModal" tabindex="-1">
         <div class="modal-dialog">
@@ -1190,6 +1238,21 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="row" id="invSipStartGroup">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">SIP Start From</label>
+                                <select class="form-select" id="invSipStartFrom">
+                                    <option value="this_month">This Month</option>
+                                    <option value="next_month">Next Month</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-3 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="invSipActive" checked>
+                                    <label class="form-check-label" for="invSipActive">SIP Active</label>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Invested Amount (₹)</label>
@@ -1204,6 +1267,63 @@
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-success">Add to Portfolio</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Investment Modal -->
+    <div class="modal fade" id="editInvestmentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-success">Edit Investment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editInvestmentForm">
+                        <input type="hidden" id="editInvId">
+                        <div class="mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="editInvStartDate">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Monthly SIP Amount (₹)</label>
+                                <input type="number" class="form-control" id="editInvMonthlyAmount" min="0" step="0.01">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">SIP Day</label>
+                                <select class="form-select" id="editInvSipDate">
+                                    <option value="1">1st</option>
+                                    <option value="5">5th</option>
+                                    <option value="10">10th</option>
+                                    <option value="15">15th</option>
+                                    <option value="20">20th</option>
+                                    <option value="25">25th</option>
+                                    <option value="30">30th</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">SIP Start From</label>
+                                <select class="form-select" id="editInvSipStartFrom">
+                                    <option value="this_month">This Month</option>
+                                    <option value="next_month">Next Month</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-3 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="editInvSipActive">
+                                    <label class="form-check-label" for="editInvSipActive">SIP Active</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Save Changes</button>
                         </div>
                     </form>
                 </div>
